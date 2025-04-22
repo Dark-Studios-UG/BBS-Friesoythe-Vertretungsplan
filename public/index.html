@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertretungsplan</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Vertretungsplan</h1>
+        <div>
+            <label for="datePicker">Datum:</label>
+            <input type="date" id="datePicker" value="2025-04-22">
+            <label for="courseFilter">Kurs:</label>
+            <select id="courseFilter">
+                <option value="all">Alle</option>
+                <!-- Kurse werden hier dynamisch hinzugefügt -->
+            </select>
+            <button id="filterButton">Filtern</button>
+        </div>
+        <h2 id="date"></h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Kurs</th>
+                    <th>Stunde</th>
+                    <th>Raum</th>
+                    <th>Lehrer</th>
+                    <th>Typ</th>
+                    <th>Notizen</th>
+                </tr>
+            </thead>
+            <tbody id="data-body">
+                <!-- Daten werden hier eingefügt -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // Aktuelles Datum im Format TT.MM.JJJJ
+        const today = new Date();
+        const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+        document.getElementById('date').textContent = today.toLocaleDateString('de-DE', options);
+
+        // Kurse von der API abrufen
+        const fetchCourses = () => {
+            fetch('/api/data') // Hier wird die API aufgerufen
+                .then(response => response.json())
+                .then(response => {
+                    const courses = response.courses // Kurse aus der Antwort extrahieren
+                        .filter(course => course) // Leere Kurse entfernen
+                        .sort(); // Alphabetisch sortieren
+
+                    const courseFilter = document.getElementById('courseFilter');
+                    courses.forEach(course => {
+                        const option = document.createElement('option');
+                        option.value = course;
+                        option.textContent = course;
+                        courseFilter.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Fehler beim Abrufen der Kurse:', error));
+        };
+
+        // Daten von der API abrufen
+        const fetchData = () => {
+            const selectedDate = document.getElementById('datePicker').value;
+            const selectedCourse = document.getElementById('courseFilter').value;
+
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('data-body');
+                    tbody.innerHTML = ''; // Vorherige Daten löschen
+
+                    data.data.forEach(item => { // Hier wird auf die gescrapten Daten zugegriffen
+                        if (selectedCourse === 'all' || item.kurs === selectedCourse) {
+                            const row = `<tr>
+                                <td>${item.kurs}</td>
+                                <td>${item.stunde}</td>
+                                <td>${item.raum}</td>
+                                <td>${item.lehrer}</td>
+                                <td>${item.typ}</td>
+                                <td>${item.notizen}</td>
+                            </tr>`;
+                            tbody.innerHTML += row;
+                        }
+                    });
+                })
+                .catch(error => console.error('Fehler beim Abrufen der Daten:', error));
+        };
+
+        // Event Listener für den Filter-Button
+        document.getElementById('filterButton').addEventListener('click', fetchData);
+
+        // Initiale Kurse und Daten abrufen
+        fetchCourses();
+        fetchData();
+    </script>
+</body>
+</html>
