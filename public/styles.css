@@ -12,11 +12,61 @@ body {
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
 }
 
 h1 {
     text-align: center;
     color: #333;
+}
+
+label {
+    margin-right: 10px;
+}
+
+input[type="date"],
+select {
+    margin: 0 10px;
+}
+
+button {
+    background-color: rgba(0, 0, 0, 0.2); /* Grüner Hintergrund */
+    border: none; /* Keine Rahmen */
+    color: black; /* Weiße Schriftfarbe */
+    padding: 10px 15px; /* Innenabstand */
+    text-align: center; /* Text zentrieren */
+    text-decoration: none; /* Keine Unterstreichung */
+    display: inline-block; /* Inline-Block-Element */
+    font-size: 16px; /* Schriftgröße */
+    margin: 5px; /* Abstand zwischen den Buttons */
+    cursor: pointer; /* Zeiger-Cursor */
+    border-radius: 5px; /* Abgerundete Ecken */
+    transition: background-color 0.3s; /* Übergangseffekt */
+}
+
+button:hover {
+    background-color: rgba(0, 0, 0, 0.3); /* Dunklerer Grünton beim Hover */
+}
+
+button.active {
+    background-color: rgba(0, 0, 0, 0.3); /* Dunklerer Grünton für den aktiven Button */
+    color: black; /* Weiße Schriftfarbe */
+}
+
+select {
+    background-color: rgba(0, 0, 0, 0.2); /* Grüner Hintergrund */
+    color: black; /* Weiße Schriftfarbe */
+    padding: 10px; /* Innenabstand */
+    border: none; /* Keine Rahmen */
+    border-radius: 5px; /* Abgerundete Ecken */
+    font-size: 16px; /* Schriftgröße */
+    margin: 5px; /* Abstand zwischen den Elementen */
+    cursor: pointer; /* Zeiger-Cursor */
+    transition: background-color 0.3s; /* Übergangseffekt */
+}
+
+select:hover {
+    background-color: rgba(0, 0, 0, 0.3); /* Dunklerer Grünton beim Hover */
 }
 
 table {
