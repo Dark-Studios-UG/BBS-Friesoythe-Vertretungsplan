@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="das.webp">
     <title>Vertretungsplan</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -18,21 +19,23 @@
                 <!-- Kurse werden hier dynamisch hinzugefügt -->
             </select>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Kurs</th>
-                    <th>Stunde</th>
-                    <th>Raum</th>
-                    <th>Lehrer</th>
-                    <th>Typ</th>
-                    <th>Notizen</th>
-                </tr>
-            </thead>
-            <tbody id="data-body">
-                <!-- Daten werden hier eingefügt -->
-            </tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kurs</th>
+                        <th>Stunde</th>
+                        <th>Raum</th>
+                        <th>Lehrer</th>
+                        <th>Typ</th>
+                        <th>Notizen</th>
+                    </tr>
+                </thead>
+                <tbody id="data-body">
+                    <!-- Daten werden hier eingefügt -->
+                </tbody>
+            </table>
+        </div>
     </div>
     <script>
         // Aktuelles Datum im Format Wochentag, TT.MM.JJJJ
@@ -87,10 +90,23 @@
 
         let allData = []; // Variable zum Speichern der gescrapten Daten
 
+        // Funktion zum Speichern des ausgewählten Kurses
+        const saveSelectedCourse = (course) => {
+            localStorage.setItem('selectedCourse', course);
+        };
+
+        // Funktion zum Laden des gespeicherten Kurses
+        const loadSelectedCourse = () => {
+            return localStorage.getItem('selectedCourse') || 'all';
+        };
+
         // Daten filtern
         const filterData = () => {
             const selectedCourse = document.getElementById('courseFilter').value;
             console.log('Ausgewählter Kurs:', selectedCourse);
+            
+            // Speichere den ausgewählten Kurs
+            saveSelectedCourse(selectedCourse);
             
             if (selectedCourse === 'all') {
                 renderData(allData);
@@ -126,7 +142,14 @@
                         courseFilter.appendChild(option);
                     });
 
-                    renderData(allData);
+                    // Setze den gespeicherten Kurs
+                    const savedCourse = loadSelectedCourse();
+                    if (uniqueCourses.includes(savedCourse) || savedCourse === 'all') {
+                        courseFilter.value = savedCourse;
+                        filterData(); // Wende den Filter direkt an
+                    } else {
+                        renderData(allData);
+                    }
                 })
                 .catch(error => console.error('Fehler beim Abrufen der Kurse:', error));
         };
@@ -153,7 +176,14 @@
                         courseFilter.appendChild(option);
                     });
 
-                    renderData(allData);
+                    // Setze den gespeicherten Kurs
+                    const savedCourse = loadSelectedCourse();
+                    if (uniqueCourses.includes(savedCourse) || savedCourse === 'all') {
+                        courseFilter.value = savedCourse;
+                        filterData(); // Wende den Filter direkt an
+                    } else {
+                        renderData(allData);
+                    }
                 })
                 .catch(error => console.error('Fehler beim Abrufen der Morgen-Daten:', error));
         };
