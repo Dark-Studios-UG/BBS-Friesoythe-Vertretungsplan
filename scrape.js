@@ -27,13 +27,51 @@ if (!fs.existsSync(dataDir)) {
 }
 
 /**
+ * Prüft, ob ein Datum ein Wochenende ist
+ * @param {Date} date - Das zu prüfende Datum
+ * @returns {boolean} true wenn Wochenende (Samstag oder Sonntag)
+ */
+const isWeekend = (date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // 0 = Sonntag, 6 = Samstag
+};
+
+/**
+ * Ermittelt das nächste Schultag-Datum
+ * @param {Date} date - Startdatum
+ * @returns {Date} Nächster Schultag
+ */
+const getNextSchoolDay = (date) => {
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    while (isWeekend(nextDay)) {
+        nextDay.setDate(nextDay.getDate() + 1);
+    }
+    return nextDay;
+};
+
+/**
  * Ermittelt das korrekte Datum basierend auf der Tageszeit
  * @returns {string} Datum im Format YYYY-MM-DD
  */
 const getCorrectDate = () => {
     const now = new Date();
     if (now.getHours() >= SWITCH_HOUR) {
+        // Wenn aktuell Wochenende ist und nach SWITCH_HOUR, zum nächsten Schultag springen
+        if (isWeekend(now)) {
+            const nextSchoolDay = getNextSchoolDay(now);
+            return nextSchoolDay.toISOString().split('T')[0];
+        }
         now.setDate(now.getDate() + 1);
+        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        if (isWeekend(now)) {
+            const nextSchoolDay = getNextSchoolDay(now);
+            return nextSchoolDay.toISOString().split('T')[0];
+        }
+    } else if (isWeekend(now)) {
+        // Wenn aktuell Wochenende ist, zum nächsten Schultag springen
+        const nextSchoolDay = getNextSchoolDay(now);
+        return nextSchoolDay.toISOString().split('T')[0];
     }
     return now.toISOString().split('T')[0];
 };
@@ -187,8 +225,17 @@ app.get('/api/morgen', async (req, res) => {
         const currentDate = getCorrectDate();
         const tomorrowDate = new Date(currentDate);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
         
+        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        if (isWeekend(tomorrowDate)) {
+            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
+            const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
+            const data = await getDataForDate(nextSchoolDayStr);
+            res.json(data);
+            return;
+        }
+        
+        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
         const data = await getDataForDate(tomorrowDateStr);
         res.json(data);
     } catch (error) {

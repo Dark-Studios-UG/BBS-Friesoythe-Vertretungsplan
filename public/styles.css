@@ -148,6 +148,23 @@ th {
     top: 0;
     z-index: 2;
     border-bottom: 2px solid #ddd;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+th:hover {
+    background-color: var(--button-hover);
+}
+
+th.sorted-asc::after {
+    content: ' ▲';
+    font-size: 0.8em;
+}
+
+th.sorted-desc::after {
+    content: ' ▼';
+    font-size: 0.8em;
 }
 
 /* Spaltenbreiten */

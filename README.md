@@ -30,7 +30,7 @@ cd BBS-Friesoythe-Vertretungsplan
 
 2. Dependencies installieren:
 ```bash
-npm install
+npm install express puppeteer cors path fs
 ```
 
 3. Server starten:
@@ -49,7 +49,8 @@ http://localhost:3000
 vertretungsplan/
 ├── public/               # Statische Dateien
 │   ├── index.html       # Frontend-Interface
-│   └── styles.css       # Styling
+│   ├── styles.css       # Styling
+│   └── das.webp         # Favicon
 ├── data/                # Gespeicherte Vertretungsdaten
 ├── scrape.js           # Backend-Server & Scraping-Logik
 ├── package.json        # Projekt-Konfiguration
@@ -77,37 +78,39 @@ vertretungsplan/
 
 ## Lizenz
 
-Dieses Projekt ist unter der ISC-Lizenz lizenziert - siehe unten für Details:
+Dieses Projekt ist unter einer eingeschränkten Lizenz nur für persönliche Nutzung lizenziert:
 
 ```
-ISC License (ISC)
+Custom Personal Use License
 
 Copyright (c) 2024 Dark Studios UG
 
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
+Die Erlaubnis zur Nutzung, Kopierung, Modifizierung und/oder Verteilung dieser Software
+wird hiermit ausschließlich für persönliche, nicht-kommerzielle Zwecke erteilt,
+vorausgesetzt, dass der obige Copyright-Hinweis und dieser Erlaubnishinweis in allen
+Kopien oder wesentlichen Teilen der Software enthalten sind.
 
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
+DIE SOFTWARE WIRD OHNE JEDE AUSDRÜCKLICHE ODER IMPLIZIERTE GARANTIE BEREITGESTELLT,
+EINSCHLIESSLICH DER GARANTIE ZUR BENUTZUNG FÜR DEN VORGESEHENEN ODER EINEM BESTIMMTEN
+ZWECK SOWIE JEGLICHER RECHTSVERLETZUNG, JEDOCH NICHT DARAUF BESCHRÄNKT. IN KEINEM
+FALL SIND DIE AUTOREN ODER COPYRIGHTINHABER FÜR JEGLICHEN SCHADEN ODER SONSTIGE
+ANSPRÜCHE HAFTBAR ZU MACHEN, OB INFOLGE DER ERFÜLLUNG EINES VERTRAGES, EINES DELIKTES
+ODER ANDERS IM ZUSAMMENHANG MIT DER SOFTWARE ODER SONSTIGER VERWENDUNG DER SOFTWARE
+ENTSTANDEN.
 ```
 
 ### Was die Lizenz erlaubt:
-- ✅ Kommerzielle Nutzung
-- ✅ Modifikation
-- ✅ Distribution
-- ✅ Private Nutzung
+- ✅ Private, nicht-kommerzielle Nutzung
+- ✅ Modifikation für persönliche Zwecke
+- ✅ Private Verteilung
 
 ### Bedingungen:
 - ℹ️ Lizenz und Copyright müssen in allen Kopien enthalten sein
 - ℹ️ Änderungen müssen dokumentiert werden
+- ℹ️ Nur für persönliche, nicht-kommerzielle Projekte
 
 ### Einschränkungen:
+- ❌ Keine kommerzielle Nutzung
 - ❌ Keine Haftung durch die Autoren
 - ❌ Keine Garantien durch die Autoren
 

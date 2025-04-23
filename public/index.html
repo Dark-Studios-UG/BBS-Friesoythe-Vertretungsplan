@@ -26,12 +26,12 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Kurs</th>
-                        <th>Stunde</th>
-                        <th>Raum</th>
-                        <th>Lehrer</th>
-                        <th>Typ</th>
-                        <th>Notizen</th>
+                        <th data-sort="kurs">Kurs</th>
+                        <th data-sort="stunde">Stunde</th>
+                        <th data-sort="raum">Raum</th>
+                        <th data-sort="lehrer">Lehrer</th>
+                        <th data-sort="typ">Typ</th>
+                        <th data-sort="notizen">Notizen</th>
                     </tr>
                 </thead>
                 <tbody id="data-body"></tbody>
@@ -91,6 +91,8 @@
         // Daten-Management
         class DataManager {
             static allData = [];
+            static currentSortColumn = null;
+            static isAscending = true;
 
             static async fetchData(isToday = true) {
                 try {
@@ -112,8 +114,34 @@
             }
 
             static filterData(selectedCourse) {
-                if (selectedCourse === 'all') return this.allData;
-                return this.allData.filter(item => item.kurs.trim() === selectedCourse.trim());
+                let filteredData = selectedCourse === 'all' 
+                    ? this.allData 
+                    : this.allData.filter(item => item.kurs.trim() === selectedCourse.trim());
+                
+                if (this.currentSortColumn) {
+                    filteredData = this.sortData(filteredData, this.currentSortColumn, this.isAscending);
+                }
+                
+                return filteredData;
+            }
+
+            static sortData(data, column, ascending) {
+                return [...data].sort((a, b) => {
+                    const aVal = (a[column] || '').toString().trim().toLowerCase();
+                    const bVal = (b[column] || '').toString().trim().toLowerCase();
+                    
+                    // Numerische Sortierung für die Stunde
+                    if (column === 'stunde') {
+                        const aNum = parseInt(aVal) || 0;
+                        const bNum = parseInt(bVal) || 0;
+                        return ascending ? aNum - bNum : bNum - aNum;
+                    }
+                    
+                    // Alphabetische Sortierung für andere Spalten
+                    return ascending 
+                        ? aVal.localeCompare(bVal) 
+                        : bVal.localeCompare(aVal);
+                });
             }
         }
 
@@ -135,6 +163,18 @@
                     option.value = course;
                     option.textContent = course;
                     DOM.courseFilter.appendChild(option);
+                });
+            }
+
+            static updateSortIndicators(column) {
+                const headers = document.querySelectorAll('th');
+                headers.forEach(header => {
+                    header.classList.remove('sorted-asc', 'sorted-desc');
+                    if (header.dataset.sort === column) {
+                        header.classList.add(
+                            DataManager.isAscending ? 'sorted-asc' : 'sorted-desc'
+                        );
+                    }
                 });
             }
 
@@ -188,6 +228,11 @@
                 DOM.tomorrowButton.addEventListener('click', () => this.handleDateChange(false));
                 DOM.courseFilter.addEventListener('change', () => this.handleCourseChange());
 
+                // Sortier-Event-Listener hinzufügen
+                document.querySelectorAll('th[data-sort]').forEach(header => {
+                    header.addEventListener('click', () => this.handleSort(header.dataset.sort));
+                });
+
                 // Initial load
                 await this.handleDateChange(true);
             }
@@ -218,6 +263,18 @@
                 const selectedCourse = DOM.courseFilter.value;
                 StorageManager.saveSelectedCourse(selectedCourse);
                 UIManager.renderData(DataManager.filterData(selectedCourse));
+            }
+
+            static handleSort(column) {
+                if (DataManager.currentSortColumn === column) {
+                    DataManager.isAscending = !DataManager.isAscending;
+                } else {
+                    DataManager.currentSortColumn = column;
+                    DataManager.isAscending = true;
+                }
+
+                UIManager.updateSortIndicators(column);
+                UIManager.renderData(DataManager.filterData(DOM.courseFilter.value));
             }
         }
 
