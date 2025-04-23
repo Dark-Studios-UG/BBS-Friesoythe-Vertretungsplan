@@ -169,12 +169,12 @@ th.sorted-desc::after {
 
 /* Spaltenbreiten */
 th:nth-child(1), td:nth-child(1) { width: 15%; } /* Kurs */
-th:nth-child(2), td:nth-child(2) { width: 10%; } /* Stunde */
-th:nth-child(3), td:nth-child(3) { width: 15%; } /* Raum */
-th:nth-child(4), td:nth-child(4) { width: 15%; } /* Lehrer */
-th:nth-child(5), td:nth-child(5) { width: 15%; } /* Typ */
-th:nth-child(6), td:nth-child(6) { width: 30%; } /* Notizen */
-th:nth-child(7), td:nth-child(7) { width: 20%; } /* Datum (nur bei "Alle Tage") */
+th:nth-child(2), td:nth-child(2) { width: 12%; } /* Tag */
+th:nth-child(3), td:nth-child(3) { width: 8%; }  /* Stunde */
+th:nth-child(4), td:nth-child(4) { width: 15%; } /* Raum */
+th:nth-child(5), td:nth-child(5) { width: 15%; } /* Lehrer */
+th:nth-child(6), td:nth-child(6) { width: 15%; } /* Typ */
+th:nth-child(7), td:nth-child(7) { width: 20%; } /* Notizen */
 
 /* Datumsspalte */
 .date-column {
@@ -183,20 +183,20 @@ th:nth-child(7), td:nth-child(7) { width: 20%; } /* Datum (nur bei "Alle Tage") 
 
 /* Wenn die Datumsspalte ausgeblendet ist, passe die anderen Spaltenbreiten an */
 .date-column[style*="display: none"] ~ td:nth-child(1) { width: 15%; }
-.date-column[style*="display: none"] ~ td:nth-child(2) { width: 10%; }
-.date-column[style*="display: none"] ~ td:nth-child(3) { width: 15%; }
+.date-column[style*="display: none"] ~ td:nth-child(3) { width: 10%; }
 .date-column[style*="display: none"] ~ td:nth-child(4) { width: 15%; }
 .date-column[style*="display: none"] ~ td:nth-child(5) { width: 15%; }
-.date-column[style*="display: none"] ~ td:nth-child(6) { width: 30%; }
+.date-column[style*="display: none"] ~ td:nth-child(6) { width: 15%; }
+.date-column[style*="display: none"] ~ td:nth-child(7) { width: 30%; }
 
 /* Wenn die Datumsspalte sichtbar ist */
-.date-column:not([style*="display: none"]) ~ td:nth-child(1) { width: 12%; }
-.date-column:not([style*="display: none"]) ~ td:nth-child(2) { width: 8%; }
-.date-column:not([style*="display: none"]) ~ td:nth-child(3) { width: 12%; }
-.date-column:not([style*="display: none"]) ~ td:nth-child(4) { width: 12%; }
-.date-column:not([style*="display: none"]) ~ td:nth-child(5) { width: 12%; }
-.date-column:not([style*="display: none"]) ~ td:nth-child(6) { width: 24%; }
-.date-column:not([style*="display: none"]) { width: 20%; }
+.date-column:not([style*="display: none"]) ~ td:nth-child(1) { width: 15%; }
+.date-column:not([style*="display: none"]) ~ td:nth-child(3) { width: 8%; }
+.date-column:not([style*="display: none"]) ~ td:nth-child(4) { width: 15%; }
+.date-column:not([style*="display: none"]) ~ td:nth-child(5) { width: 15%; }
+.date-column:not([style*="display: none"]) ~ td:nth-child(6) { width: 12%; }
+.date-column:not([style*="display: none"]) ~ td:nth-child(7) { width: 20%; }
+.date-column:not([style*="display: none"]) { width: 15%; }
 
 tr:nth-child(even) {
     background-color: var(--table-row-even);
@@ -273,6 +273,10 @@ tr:hover td {
     /* Verbesserte Touch-Interaktion */
     button, select {
         min-height: 44px;
+    }
+
+    .date-column {
+        min-width: 100px;
     }
 }
 

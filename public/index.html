@@ -28,12 +28,12 @@
                 <thead>
                     <tr>
                         <th data-sort="kurs">Kurs</th>
+                        <th data-sort="datum" class="date-column">Tag</th>
                         <th data-sort="stunde">Stunde</th>
                         <th data-sort="raum">Raum</th>
                         <th data-sort="lehrer">Lehrer</th>
                         <th data-sort="typ">Typ</th>
                         <th data-sort="notizen">Notizen</th>
-                        <th data-sort="datum" class="date-column">Datum</th>
                     </tr>
                 </thead>
                 <tbody id="data-body"></tbody>
@@ -53,7 +53,7 @@
         const API = {
             TODAY: '/api/data',
             TOMORROW: '/api/morgen',
-            ALL: '/api/all'
+            BOTH: '/api/both'
         };
 
         const STORAGE_KEYS = {
@@ -93,9 +93,14 @@
                 return date.toLocaleDateString('de-DE', options);
             }
 
+            static formatDateShort(date) {
+                const options = { weekday: 'long' };
+                return date.toLocaleDateString('de-DE', options);
+            }
+
             static formatDateFromString(dateStr) {
                 const date = new Date(dateStr);
-                return this.formatDate(date);
+                return this.formatDateShort(date);
             }
         }
 
@@ -104,13 +109,13 @@
             static allData = [];
             static currentSortColumn = null;
             static isAscending = true;
-            static currentView = 'today'; // 'today', 'tomorrow', or 'all'
+            static currentView = 'today'; // 'today', 'tomorrow', or 'both'
 
             static async fetchData(view = 'today') {
                 try {
                     const response = await fetch(
                         view === 'today' ? API.TODAY : 
-                        view === 'tomorrow' ? API.TOMORROW : API.ALL
+                        view === 'tomorrow' ? API.TOMORROW : API.BOTH
                     );
                     if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
                     
@@ -120,7 +125,7 @@
                     this.currentView = view;
                     return {
                         data: this.allData,
-                        courses: [...new Set(data.courses.filter(Boolean))].sort()
+                        courses: data.courses.filter(Boolean).sort()
                     };
                 } catch (error) {
                     console.error('Fehler beim Abrufen der Daten:', error);
@@ -163,7 +168,7 @@
         // UI-Management
         class UIManager {
             static updateDateDisplay(date, view = 'today') {
-                if (view === 'all') {
+                if (view === 'both') {
                     const today = DateManager.getCurrentDate();
                     const tomorrow = DateManager.getTomorrowDate();
                     DOM.date.textContent = `${DateManager.formatDate(today)} und ${DateManager.formatDate(tomorrow)}`;
@@ -173,14 +178,14 @@
 
                 // Zeige/Verstecke die Datumsspalte
                 document.querySelectorAll('.date-column').forEach(el => {
-                    el.style.display = view === 'all' ? '' : 'none';
+                    el.style.display = view === 'both' ? '' : 'none';
                 });
             }
 
             static setActiveButton(view) {
                 DOM.todayButton.classList.toggle('active', view === 'today');
                 DOM.tomorrowButton.classList.toggle('active', view === 'tomorrow');
-                DOM.allDaysButton.classList.toggle('active', view === 'all');
+                DOM.allDaysButton.classList.toggle('active', view === 'both');
             }
 
             static updateCourseFilter(courses) {
@@ -216,21 +221,21 @@
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td>${item.kurs || '-'}</td>
+                        <td class="date-column" ${DataManager.currentView !== 'both' ? 'style="display:none"' : ''}>
+                            ${item.datum ? DateManager.formatDateFromString(item.datum) : '-'}
+                        </td>
                         <td>${item.stunde || '-'}</td>
                         <td>${item.raum || '-'}</td>
                         <td>${item.lehrer || '-'}</td>
                         <td>${item.typ || '-'}</td>
                         <td>${item.notizen || '-'}</td>
-                        <td class="date-column" ${DataManager.currentView !== 'all' ? 'style="display:none"' : ''}>
-                            ${item.datum ? DateManager.formatDateFromString(item.datum) : '-'}
-                        </td>
                     `;
                     DOM.dataBody.appendChild(row);
                 });
             }
 
             static showMessage(message) {
-                const colspan = DataManager.currentView === 'all' ? 7 : 6;
+                const colspan = DataManager.currentView === 'both' ? 7 : 6;
                 DOM.dataBody.innerHTML = `
                     <tr>
                         <td colspan="${colspan}" style="text-align: center; padding: 20px;">
@@ -310,7 +315,7 @@
             static async init() {
                 DOM.todayButton.addEventListener('click', () => this.handleDateChange('today'));
                 DOM.tomorrowButton.addEventListener('click', () => this.handleDateChange('tomorrow'));
-                DOM.allDaysButton.addEventListener('click', () => this.handleDateChange('all'));
+                DOM.allDaysButton.addEventListener('click', () => this.handleDateChange('both'));
                 DOM.courseFilter.addEventListener('change', () => this.handleCourseChange());
 
                 // Listen for hash changes
@@ -330,8 +335,8 @@
                 try {
                     StorageManager.saveSelectedView(view);
                     UIManager.setActiveButton(view);
-                    if (view === 'all') {
-                        UIManager.updateDateDisplay(null, 'all');
+                    if (view === 'both') {
+                        UIManager.updateDateDisplay(null, 'both');
                     } else {
                         UIManager.updateDateDisplay(
                             view === 'today' ? DateManager.getCurrentDate() : DateManager.getTomorrowDate(),
@@ -349,24 +354,28 @@
                         const savedCourse = StorageManager.loadSelectedCourse();
                         if (data.courses.includes(savedCourse) || savedCourse === 'all') {
                             DOM.courseFilter.value = savedCourse;
+                        } else {
+                            DOM.courseFilter.value = 'all';
                         }
                     }
                     this.handleCourseChange();
                 } catch (error) {
+                    console.error('Fehler beim Laden der Daten:', error);
                     UIManager.showMessage('Fehler beim Laden der Daten');
                 }
+            }
+
+            static handleCourseChange() {
+                const selectedCourse = DOM.courseFilter.value;
+                StorageManager.saveSelectedCourse(selectedCourse);
+                const filteredData = DataManager.filterData(selectedCourse);
+                UIManager.renderData(filteredData);
             }
 
             static handleHashChange() {
                 const hashData = StorageManager.parseUrlHash();
                 const view = hashData.view || 'today';
                 this.handleDateChange(view);
-            }
-
-            static handleCourseChange() {
-                const selectedCourse = DOM.courseFilter.value;
-                StorageManager.saveSelectedCourse(selectedCourse);
-                UIManager.renderData(DataManager.filterData(selectedCourse));
             }
 
             static handleSort(column) {
@@ -378,7 +387,7 @@
                 }
 
                 UIManager.updateSortIndicators(column);
-                UIManager.renderData(DataManager.filterData(DOM.courseFilter.value));
+                this.handleCourseChange();
             }
         }
 

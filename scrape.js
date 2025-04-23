@@ -244,12 +244,19 @@ app.get('/api/morgen', async (req, res) => {
     }
 });
 
-// Neuer Endpunkt für alle Tage
-app.get('/api/all', async (req, res) => {
+// Endpunkt für beide Tage
+app.get('/api/both', async (req, res) => {
     try {
         const currentDate = getCorrectDate();
         const tomorrowDate = new Date(currentDate);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        
+        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        if (isWeekend(tomorrowDate)) {
+            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
+            tomorrowDate.setTime(nextSchoolDay.getTime());
+        }
+        
         const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
 
         const todayData = await getDataForDate(currentDate);
@@ -267,14 +274,14 @@ app.get('/api/all', async (req, res) => {
 
         // Kombiniere die Daten und Kurse
         const combinedData = {
-            data: [...todayEntries, ...tomorrowEntries],
-            courses: [...new Set([...todayData.courses, ...tomorrowData.courses])]
+            data: [...todayEntries, ...tomorrowEntries].filter(item => item.kurs?.trim()),
+            courses: [...new Set([...todayData.courses || [], ...tomorrowData.courses || []].filter(Boolean))]
         };
 
         res.json(combinedData);
     } catch (error) {
-        console.error('Fehler beim Abrufen aller Daten:', error);
-        res.status(500).send('Serverfehler beim Abrufen aller Daten');
+        console.error('Fehler beim Abrufen beider Tage:', error);
+        res.status(500).send('Serverfehler beim Abrufen beider Tage');
     }
 });
 
@@ -288,23 +295,40 @@ const getDataForDate = async (date) => {
     const backupDir = path.join(dataDir, `data_${date}`);
     const backupFile = path.join(backupDir, 'data.json');
 
-    // Versuche zuerst die temporäre Datei zu lesen
-    if (fs.existsSync(tempFile)) {
-        return JSON.parse(fs.readFileSync(tempFile, 'utf8'));
-    }
+    try {
+        // Versuche zuerst die temporäre Datei zu lesen
+        if (fs.existsSync(tempFile)) {
+            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+            return {
+                data: data.data || [],
+                courses: [...new Set((data.courses || []).filter(Boolean))]
+            };
+        }
 
-    // Wenn keine temporäre Datei existiert, versuche die Backup-Datei
-    if (fs.existsSync(backupFile)) {
-        return JSON.parse(fs.readFileSync(backupFile, 'utf8'));
-    }
+        // Wenn keine temporäre Datei existiert, versuche die Backup-Datei
+        if (fs.existsSync(backupFile)) {
+            const data = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+            return {
+                data: data.data || [],
+                courses: [...new Set((data.courses || []).filter(Boolean))]
+            };
+        }
 
-    // Wenn keine Datei existiert, hole neue Daten
-    await saveTemporaryData();
-    if (fs.existsSync(tempFile)) {
-        return JSON.parse(fs.readFileSync(tempFile, 'utf8'));
-    }
+        // Wenn keine Datei existiert, hole neue Daten
+        await saveTemporaryData();
+        if (fs.existsSync(tempFile)) {
+            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+            return {
+                data: data.data || [],
+                courses: [...new Set((data.courses || []).filter(Boolean))]
+            };
+        }
 
-    throw new Error('Keine Daten verfügbar');
+        return { data: [], courses: [] };
+    } catch (error) {
+        console.error(`Fehler beim Lesen der Daten für ${date}:`, error);
+        return { data: [], courses: [] };
+    }
 };
 
 // Server starten
