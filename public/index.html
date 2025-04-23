@@ -103,7 +103,6 @@
         // Daten filtern
         const filterData = () => {
             const selectedCourse = document.getElementById('courseFilter').value;
-            console.log('Ausgewählter Kurs:', selectedCourse);
             
             // Speichere den ausgewählten Kurs
             saveSelectedCourse(selectedCourse);
@@ -112,10 +111,8 @@
                 renderData(allData);
             } else {
                 const filteredData = allData.filter(item => {
-                    console.log('Vergleiche:', item.kurs, selectedCourse);
                     return item.kurs.trim() === selectedCourse.trim();
                 });
-                console.log('Gefilterte Daten:', filteredData);
                 renderData(filteredData);
             }
         };

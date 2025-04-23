@@ -19,7 +19,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Funktion zum Scrapen und Speichern der Daten
 const scrapeAndSaveData = async () => {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+      
     const page = await browser.newPage();
 
     // Scrape für heute
