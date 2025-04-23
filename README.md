@@ -115,6 +115,8 @@ ENTSTANDEN.
 
 ## Kontakt
 
+Verbesserungsvorschläge oder Bewertungen: [Google Forms](https://forms.gle/e3auU1w4AGazuSZJ9)
+
 Projekt Link: [https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan](https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan)  
 
 Projekt Website: [bbsvertretung.darkstudios.de](https://bbsvertretung.darkstudios.de)  

@@ -244,6 +244,40 @@ app.get('/api/morgen', async (req, res) => {
     }
 });
 
+// Neuer Endpunkt für alle Tage
+app.get('/api/all', async (req, res) => {
+    try {
+        const currentDate = getCorrectDate();
+        const tomorrowDate = new Date(currentDate);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
+
+        const todayData = await getDataForDate(currentDate);
+        const tomorrowData = await getDataForDate(tomorrowDateStr);
+
+        // Füge das Datum zu jedem Eintrag hinzu
+        const todayEntries = todayData.data.map(entry => ({
+            ...entry,
+            datum: currentDate
+        }));
+        const tomorrowEntries = tomorrowData.data.map(entry => ({
+            ...entry,
+            datum: tomorrowDateStr
+        }));
+
+        // Kombiniere die Daten und Kurse
+        const combinedData = {
+            data: [...todayEntries, ...tomorrowEntries],
+            courses: [...new Set([...todayData.courses, ...tomorrowData.courses])]
+        };
+
+        res.json(combinedData);
+    } catch (error) {
+        console.error('Fehler beim Abrufen aller Daten:', error);
+        res.status(500).send('Serverfehler beim Abrufen aller Daten');
+    }
+});
+
 /**
  * Liest Vertretungsdaten für ein bestimmtes Datum
  * @param {string} date - Datum im Format YYYY-MM-DD

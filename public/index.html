@@ -17,6 +17,7 @@
             <div class="button-group">
                 <button id="todayButton">Heute</button>
                 <button id="tomorrowButton">Morgen</button>
+                <button id="allDaysButton">Beide</button>
             </div>
             <select id="courseFilter">
                 <option value="all">Wähle einen Kurs</option>
@@ -32,6 +33,7 @@
                         <th data-sort="lehrer">Lehrer</th>
                         <th data-sort="typ">Typ</th>
                         <th data-sort="notizen">Notizen</th>
+                        <th data-sort="datum" class="date-column">Datum</th>
                     </tr>
                 </thead>
                 <tbody id="data-body"></tbody>
@@ -40,6 +42,7 @@
         <footer class="footer">
             <div class="footer-links">
                 <a href="https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan" target="_blank" rel="noopener">GitHub</a>
+                <a href="https://forms.gle/SdA2HfNGgqiHhsoa9" target="_blank" rel="noopener">Verbesserungsvorschläge</a>
                 <a href="https://darkstudios.de/sections/imprint.html" target="_blank" rel="noopener">Impressum</a>
                 <a href="https://darkstudios.de/sections/privacy.html" target="_blank" rel="noopener">Datenschutz</a>
             </div>
@@ -49,17 +52,20 @@
         // Konstanten
         const API = {
             TODAY: '/api/data',
-            TOMORROW: '/api/morgen'
+            TOMORROW: '/api/morgen',
+            ALL: '/api/all'
         };
 
         const STORAGE_KEYS = {
-            SELECTED_COURSE: 'selectedCourse'
+            SELECTED_COURSE: 'selectedCourse',
+            SELECTED_VIEW: 'selectedView'
         };
 
         const DOM = {
             date: document.getElementById('date'),
             todayButton: document.getElementById('todayButton'),
             tomorrowButton: document.getElementById('tomorrowButton'),
+            allDaysButton: document.getElementById('allDaysButton'),
             courseFilter: document.getElementById('courseFilter'),
             dataBody: document.getElementById('data-body')
         };
@@ -86,6 +92,11 @@
                 const options = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' };
                 return date.toLocaleDateString('de-DE', options);
             }
+
+            static formatDateFromString(dateStr) {
+                const date = new Date(dateStr);
+                return this.formatDate(date);
+            }
         }
 
         // Daten-Management
@@ -93,19 +104,23 @@
             static allData = [];
             static currentSortColumn = null;
             static isAscending = true;
+            static currentView = 'today'; // 'today', 'tomorrow', or 'all'
 
-            static async fetchData(isToday = true) {
+            static async fetchData(view = 'today') {
                 try {
-                    const response = await fetch(isToday ? API.TODAY : API.TOMORROW);
+                    const response = await fetch(
+                        view === 'today' ? API.TODAY : 
+                        view === 'tomorrow' ? API.TOMORROW : API.ALL
+                    );
                     if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
                     
                     const data = await response.json();
                     // Filtere leere oder nur aus Leerzeichen bestehende Kurse
                     this.allData = data.data.filter(item => item.kurs?.trim());
+                    this.currentView = view;
                     return {
                         data: this.allData,
-                        // Entferne Duplikate und leere Kurse
-                        courses: [...new Set(this.allData.map(item => item.kurs.trim()))].filter(Boolean).sort()
+                        courses: [...new Set(data.courses.filter(Boolean))].sort()
                     };
                 } catch (error) {
                     console.error('Fehler beim Abrufen der Daten:', error);
@@ -147,13 +162,25 @@
 
         // UI-Management
         class UIManager {
-            static updateDateDisplay(date) {
-                DOM.date.textContent = DateManager.formatDate(date);
+            static updateDateDisplay(date, view = 'today') {
+                if (view === 'all') {
+                    const today = DateManager.getCurrentDate();
+                    const tomorrow = DateManager.getTomorrowDate();
+                    DOM.date.textContent = `${DateManager.formatDate(today)} und ${DateManager.formatDate(tomorrow)}`;
+                } else {
+                    DOM.date.textContent = DateManager.formatDate(date);
+                }
+
+                // Zeige/Verstecke die Datumsspalte
+                document.querySelectorAll('.date-column').forEach(el => {
+                    el.style.display = view === 'all' ? '' : 'none';
+                });
             }
 
-            static setActiveButton(isToday) {
-                DOM.todayButton.classList.toggle('active', isToday);
-                DOM.tomorrowButton.classList.toggle('active', !isToday);
+            static setActiveButton(view) {
+                DOM.todayButton.classList.toggle('active', view === 'today');
+                DOM.tomorrowButton.classList.toggle('active', view === 'tomorrow');
+                DOM.allDaysButton.classList.toggle('active', view === 'all');
             }
 
             static updateCourseFilter(courses) {
@@ -194,15 +221,19 @@
                         <td>${item.lehrer || '-'}</td>
                         <td>${item.typ || '-'}</td>
                         <td>${item.notizen || '-'}</td>
+                        <td class="date-column" ${DataManager.currentView !== 'all' ? 'style="display:none"' : ''}>
+                            ${item.datum ? DateManager.formatDateFromString(item.datum) : '-'}
+                        </td>
                     `;
                     DOM.dataBody.appendChild(row);
                 });
             }
 
             static showMessage(message) {
+                const colspan = DataManager.currentView === 'all' ? 7 : 6;
                 DOM.dataBody.innerHTML = `
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 20px;">
+                        <td colspan="${colspan}" style="text-align: center; padding: 20px;">
                             ${message}
                         </td>
                     </tr>
@@ -214,49 +245,122 @@
         class StorageManager {
             static saveSelectedCourse(course) {
                 localStorage.setItem(STORAGE_KEYS.SELECTED_COURSE, course);
+                this.updateUrlHash();
+            }
+
+            static saveSelectedView(view) {
+                localStorage.setItem(STORAGE_KEYS.SELECTED_VIEW, view);
+                this.updateUrlHash();
             }
 
             static loadSelectedCourse() {
+                const hash = this.parseUrlHash();
+                if (hash.course) {
+                    return decodeURIComponent(hash.course);
+                }
                 return localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE) || 'all';
+            }
+
+            static loadSelectedView() {
+                const hash = this.parseUrlHash();
+                if (hash.view) {
+                    return hash.view;
+                }
+                return localStorage.getItem(STORAGE_KEYS.SELECTED_VIEW) || 'today';
+            }
+
+            static parseUrlHash() {
+                const hash = window.location.hash.slice(1);
+                const parts = hash.split(';');
+                const result = { course: null, view: null };
+                
+                parts.forEach(part => {
+                    if (part.startsWith('view=')) {
+                        result.view = part.split('=')[1];
+                    } else if (part) {
+                        result.course = part;
+                    }
+                });
+                
+                return result;
+            }
+
+            static updateUrlHash() {
+                const course = localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE);
+                const view = localStorage.getItem(STORAGE_KEYS.SELECTED_VIEW);
+                let hash = '';
+
+                if (course && course !== 'all') {
+                    hash = course;
+                }
+                if (view && view !== 'today') {
+                    hash = hash ? `${hash};view=${view}` : `view=${view}`;
+                }
+
+                if (hash) {
+                    window.location.hash = hash;
+                } else {
+                    history.pushState("", document.title, window.location.pathname + window.location.search);
+                }
             }
         }
 
         // Event-Handler
         class EventHandler {
             static async init() {
-                DOM.todayButton.addEventListener('click', () => this.handleDateChange(true));
-                DOM.tomorrowButton.addEventListener('click', () => this.handleDateChange(false));
+                DOM.todayButton.addEventListener('click', () => this.handleDateChange('today'));
+                DOM.tomorrowButton.addEventListener('click', () => this.handleDateChange('tomorrow'));
+                DOM.allDaysButton.addEventListener('click', () => this.handleDateChange('all'));
                 DOM.courseFilter.addEventListener('change', () => this.handleCourseChange());
+
+                // Listen for hash changes
+                window.addEventListener('hashchange', () => this.handleHashChange());
 
                 // Sortier-Event-Listener hinzufügen
                 document.querySelectorAll('th[data-sort]').forEach(header => {
                     header.addEventListener('click', () => this.handleSort(header.dataset.sort));
                 });
 
-                // Initial load
-                await this.handleDateChange(true);
+                // Initial load - use view from hash or storage
+                const initialView = StorageManager.loadSelectedView();
+                await this.handleDateChange(initialView);
             }
 
-            static async handleDateChange(isToday) {
+            static async handleDateChange(view) {
                 try {
-                    UIManager.setActiveButton(isToday);
-                    UIManager.updateDateDisplay(
-                        isToday ? DateManager.getCurrentDate() : DateManager.getTomorrowDate()
-                    );
+                    StorageManager.saveSelectedView(view);
+                    UIManager.setActiveButton(view);
+                    if (view === 'all') {
+                        UIManager.updateDateDisplay(null, 'all');
+                    } else {
+                        UIManager.updateDateDisplay(
+                            view === 'today' ? DateManager.getCurrentDate() : DateManager.getTomorrowDate(),
+                            view
+                        );
+                    }
 
-                    const data = await DataManager.fetchData(isToday);
+                    const data = await DataManager.fetchData(view);
                     UIManager.updateCourseFilter(data.courses);
 
-                    const savedCourse = StorageManager.loadSelectedCourse();
-                    if (data.courses.includes(savedCourse) || savedCourse === 'all') {
-                        DOM.courseFilter.value = savedCourse;
-                        this.handleCourseChange();
+                    const hashData = StorageManager.parseUrlHash();
+                    if (hashData.course && data.courses.includes(hashData.course)) {
+                        DOM.courseFilter.value = hashData.course;
                     } else {
-                        UIManager.renderData(DataManager.allData);
+                        const savedCourse = StorageManager.loadSelectedCourse();
+                        if (data.courses.includes(savedCourse) || savedCourse === 'all') {
+                            DOM.courseFilter.value = savedCourse;
+                        }
                     }
+                    this.handleCourseChange();
                 } catch (error) {
                     UIManager.showMessage('Fehler beim Laden der Daten');
                 }
+            }
+
+            static handleHashChange() {
+                const hashData = StorageManager.parseUrlHash();
+                const view = hashData.view || 'today';
+                this.handleDateChange(view);
             }
 
             static handleCourseChange() {
