@@ -6,8 +6,8 @@ body {
 }
 
 .container {
-    max-width: 1200px;
-    margin: 20px auto;
+    max-width: 100%;
+    margin: auto;
     background: white;
     padding: 20px;
     border-radius: 8px;
@@ -73,8 +73,8 @@ select:hover {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 20px auto;
-    background-color: white;
+    margin-top: 20px;
+    min-width: 600px;
 }
 
 th, td {
@@ -91,7 +91,6 @@ th {
 tr:nth-child(even) {
     background-color: #f9f9f9;
 }
-
 
 @media screen and (max-width: 768px) {
     .container {
@@ -113,11 +112,13 @@ tr:nth-child(even) {
     }
 
     .table-container {
-        max-width: 100%;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     table {
-        min-width: 600px;
+        font-size: 14px;
     }
 
     th, td {

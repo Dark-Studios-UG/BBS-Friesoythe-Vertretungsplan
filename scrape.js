@@ -79,7 +79,7 @@ app.get('/api/data', async (req, res) => {
 });
 
 // Aktualisiere die Daten alle 10 Minuten (600000 Millisekunden)
-setInterval(scrapeAndSaveData, 600000); // 10 Minuten
+setInterval(scrapeAndSaveData, 60000); // 10 Minuten
 
 // API-Endpunkt für die verfügbaren Kurse
 app.get('/api/courses', async (req, res) => {
