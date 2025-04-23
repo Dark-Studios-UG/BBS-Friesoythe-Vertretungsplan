@@ -1,4 +1,13 @@
-# Logs
+# Dependencies
+node_modules/
+package-lock.json
+
+# Data files
+/data/
+/data/data_*/
+/data/temp_*.json
+
+# Debug logs
 logs
 *.log
 npm-debug.log*
@@ -6,6 +15,21 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -39,7 +63,6 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -57,10 +80,6 @@ web_modules/
 # Optional stylelint cache
 .stylelintcache
 
-# Data files
-data/data_*/
-data/temp/
-
 # Microbundle cache
 .rpt2_cache/
 .rts2_cache_cjs/
@@ -75,13 +94,6 @@ data/temp/
 
 # Yarn Integrity file
 .yarn-integrity
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

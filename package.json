@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan.git"
+    "url": "git+https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan.git"
   },
   "keywords": [
     "vertretungsplan",
@@ -19,10 +19,10 @@
     "timetable",
     "substitution-plan"
   ],
-  "author": "Dark Studios",
+  "author": "Dark Studios UG",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan/issues"
+    "url": "https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan/issues"
   },
   "homepage": "https://bbsvertretung.darkstudios.de",
   "dependencies": {
