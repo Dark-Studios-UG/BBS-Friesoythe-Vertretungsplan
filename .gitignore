@@ -57,8 +57,9 @@ web_modules/
 # Optional stylelint cache
 .stylelintcache
 
-data.json
-morgen.json
+# Data files
+data/data_*/
+data/temp/
 
 # Microbundle cache
 .rpt2_cache/
@@ -103,7 +104,7 @@ dist
 # vuepress build output
 .vuepress/dist
 
-# vuepress v2.x temp and cache directory
+# vitepress v2.x temp and cache directory
 .temp
 .cache
 

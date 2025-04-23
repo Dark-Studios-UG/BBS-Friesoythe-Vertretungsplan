@@ -12,17 +12,33 @@ const port = 3000;
 const urlToday = 'https://kephiso.webuntis.com/WebUntis/monitor?school=BBS%20Friesoythe&monitorType=subst&format=Vertretung%20heute';
 const urlTomorrow = 'https://kephiso.webuntis.com/WebUntis/monitor?school=BBS%20Friesoythe&monitorType=subst&format=Vertretung%20morgen';
 
+// Ensure directories exist
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+}
+
 app.use(cors());
 
 // Statische Dateien bereitstellen
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Funktion zum Scrapen und Speichern der Daten
-const scrapeAndSaveData = async () => {
+// Funktion zum Ermitteln des korrekten Datums (nach 17 Uhr ist es der nächste Tag)
+const getCorrectDate = () => {
+    const now = new Date();
+    if (now.getHours() >= 17) {
+        now.setDate(now.getDate() + 1);
+    }
+    return now.toISOString().split('T')[0]; // Returns YYYY-MM-DD format
+};
+
+// Funktion zum Scrapen der Daten
+const scrapeData = async () => {
+    console.log("Scraping data...");
     const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
+    });
       
     const page = await browser.newPage();
 
@@ -61,47 +77,157 @@ const scrapeAndSaveData = async () => {
     });
 
     await browser.close();
-
-    // Speichere die gescrapten Daten in der JSON-Datei
-    fs.writeFileSync('data.json', JSON.stringify({ data: dataToday, courses: [...new Set(dataToday.map(item => item.kurs))] }));
-    fs.writeFileSync('morgen.json', JSON.stringify({ data: dataTomorrow, courses: [...new Set(dataTomorrow.map(item => item.kurs))] }));
+    return { dataToday, dataTomorrow };
 };
+
+// Funktion zum Speichern der temporären Daten
+const saveTemporaryData = async () => {
+    const { dataToday, dataTomorrow } = await scrapeData();
+    const currentDate = getCorrectDate();
+    const tomorrowDate = new Date(currentDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
+
+    // Speichere temporäre Dateien direkt im data Ordner
+    fs.writeFileSync(
+        path.join(dataDir, `temp_${currentDate}.json`),
+        JSON.stringify({ data: dataToday, courses: [...new Set(dataToday.map(item => item.kurs))] })
+    );
+    fs.writeFileSync(
+        path.join(dataDir, `temp_${tomorrowDateStr}.json`),
+        JSON.stringify({ data: dataTomorrow, courses: [...new Set(dataTomorrow.map(item => item.kurs))] })
+    );
+};
+
+// Funktion zum Erstellen des täglichen Backups um 3 Uhr
+const createDailyBackup = async () => {
+    console.log("Creating daily backup...");
+    const { dataToday, dataTomorrow } = await scrapeData();
+    const currentDate = getCorrectDate();
+    const tomorrowDate = new Date(currentDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
+
+    // Erstelle Verzeichnisse für das aktuelle und morgige Datum
+    const todayDir = path.join(dataDir, `data_${currentDate}`);
+    const tomorrowDir = path.join(dataDir, `data_${tomorrowDateStr}`);
+
+    if (!fs.existsSync(todayDir)) {
+        fs.mkdirSync(todayDir, { recursive: true });
+    }
+    if (!fs.existsSync(tomorrowDir)) {
+        fs.mkdirSync(tomorrowDir, { recursive: true });
+    }
+
+    // Speichere die Backup-Dateien
+    fs.writeFileSync(
+        path.join(todayDir, 'data.json'),
+        JSON.stringify({ data: dataToday, courses: [...new Set(dataToday.map(item => item.kurs))] })
+    );
+    fs.writeFileSync(
+        path.join(tomorrowDir, 'data.json'),
+        JSON.stringify({ data: dataTomorrow, courses: [...new Set(dataTomorrow.map(item => item.kurs))] })
+    );
+};
+
+// Plane das tägliche Backup für 3 Uhr morgens
+const scheduleBackup = () => {
+    const now = new Date();
+    const nextRun = new Date(now);
+    nextRun.setHours(3, 0, 0, 0);
+    
+    if (now >= nextRun) {
+        nextRun.setDate(nextRun.getDate() + 1);
+    }
+
+    const timeUntilNextRun = nextRun - now;
+    setTimeout(async () => {
+        await createDailyBackup();
+        // Plane das nächste Backup
+        setInterval(createDailyBackup, 24 * 60 * 60 * 1000);
+    }, timeUntilNextRun);
+};
+
+// Starte die Backup-Planung
+scheduleBackup();
 
 // API-Endpunkt für die gescrapten Daten
 app.get('/api/data', async (req, res) => {
-    // Überprüfe, ob die Daten bereits in der JSON-Datei gespeichert sind
-    if (fs.existsSync('data.json')) {
-        // Lade die Daten aus der JSON-Datei
-        const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
-        return res.json(data);
+    const currentDate = getCorrectDate();
+    const tempFile = path.join(dataDir, `temp_${currentDate}.json`);
+    const backupDir = path.join(dataDir, `data_${currentDate}`);
+    const backupFile = path.join(backupDir, 'data.json');
+
+    try {
+        // Versuche zuerst die temporäre Datei zu lesen
+        if (fs.existsSync(tempFile)) {
+            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+            return res.json(data);
+        }
+
+        // Wenn keine temporäre Datei existiert, versuche die Backup-Datei zu lesen
+        if (fs.existsSync(backupFile)) {
+            const data = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+            return res.json(data);
+        }
+
+        // Wenn keine Datei existiert, hole neue Daten
+        await saveTemporaryData();
+        if (fs.existsSync(tempFile)) {
+            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+            return res.json(data);
+        }
+
+        res.status(404).send('Daten konnten nicht abgerufen werden');
+    } catch (error) {
+        console.error('Fehler beim Abrufen der Daten:', error);
+        res.status(500).send('Serverfehler beim Abrufen der Daten');
     }
-
-    // Wenn die Datei nicht existiert, scrape die Daten
-    await scrapeAndSaveData(); // Scrape und speichere die Daten
-    const data = JSON.parse(fs.readFileSync('data.json', 'utf8'));
-    res.json(data);
 });
 
-// Aktualisiere die Daten alle 10 Minuten (600000 Millisekunden)
-setInterval(scrapeAndSaveData, 60000); // 10 Minuten
+app.get('/api/morgen', async (req, res) => {
+    const currentDate = getCorrectDate();
+    const tomorrowDate = new Date(currentDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
+    
+    const tempFile = path.join(dataDir, `temp_${tomorrowDateStr}.json`);
+    const backupDir = path.join(dataDir, `data_${tomorrowDateStr}`);
+    const backupFile = path.join(backupDir, 'data.json');
 
-// API-Endpunkt für die verfügbaren Kurse
-app.get('/api/courses', async (req, res) => {
-    // Diese Route kann entfernt werden, da die Kurse jetzt aus den gescrapten Daten extrahiert werden
-    res.status(404).send('Nicht gefunden');
+    try {
+        // Versuche zuerst die temporäre Datei zu lesen
+        if (fs.existsSync(tempFile)) {
+            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+            return res.json(data);
+        }
+
+        // Wenn keine temporäre Datei existiert, versuche die Backup-Datei zu lesen
+        if (fs.existsSync(backupFile)) {
+            const data = JSON.parse(fs.readFileSync(backupFile, 'utf8'));
+            return res.json(data);
+        }
+
+        // Wenn keine Datei existiert, hole neue Daten
+        await saveTemporaryData();
+        if (fs.existsSync(tempFile)) {
+            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+            return res.json(data);
+        }
+
+        res.status(404).send('Morgen-Daten nicht gefunden');
+    } catch (error) {
+        console.error('Fehler beim Abrufen der Morgen-Daten:', error);
+        res.status(500).send('Serverfehler beim Abrufen der Morgen-Daten');
+    }
 });
+
+// Aktualisiere die temporären Daten alle 10 Minuten
+setInterval(saveTemporaryData, 600000);
 
 // Root-Endpunkt, der die HTML-Datei zurückgibt
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/api/morgen', async (req, res) => {
-    if (fs.existsSync('morgen.json')) {
-        const morgenData = JSON.parse(fs.readFileSync('morgen.json', 'utf8'));
-        return res.json(morgenData);
-    }
-    res.status(404).send('Morgen-Daten nicht gefunden');
 });
 
 app.listen(port, () => {

@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/png" href="das.webp">
     <title>Vertretungsplan</title>
     <link rel="stylesheet" href="styles.css">
@@ -11,9 +11,11 @@
     <div class="container">
         <h1>Vertretungsplan</h1>
         <h2 id="date"></h2>
-        <div>
-            <button id="todayButton">Heute</button>
-            <button id="tomorrowButton">Morgen</button>
+        <div class="controls">
+            <div class="button-group">
+                <button id="todayButton">Heute</button>
+                <button id="tomorrowButton">Morgen</button>
+            </div>
             <select id="courseFilter">
                 <option value="all">Wähle einen Kurs</option>
                 <!-- Kurse werden hier dynamisch hinzugefügt -->
@@ -56,22 +58,20 @@
 
         // Funktion zum Setzen des Datums
         const setDate = (date) => {
-            // datePicker.value = date.toISOString().split('T')[0]; // Setze das Datum im Eingabefeld (falls benötigt)
+            document.getElementById('date').textContent = date.toLocaleDateString('de-DE', options);
         };
 
         // Event Listener für die Schaltflächen
         document.getElementById('todayButton').addEventListener('click', () => {
             setDate(today);
-            setActiveButton('today'); // Setze den aktiven Button
-            document.getElementById('date').textContent = today.toLocaleDateString('de-DE', options); 
-            fetchCourses(); // Lade die Kurse für heute
+            setActiveButton('today');
+            fetchCourses();
         });
 
         document.getElementById('tomorrowButton').addEventListener('click', () => {
             setDate(tomorrow);
-            setActiveButton('tomorrow'); // Setze den aktiven Button
-            document.getElementById('date').textContent = tomorrow.toLocaleDateString('de-DE', options); // Datum für morgen anzeigen
-            fetchMorgenData(); // Lade die Kurse für morgen
+            setActiveButton('tomorrow');
+            fetchMorgenData();
         });
 
         // Funktion zum Setzen des aktiven Buttons
@@ -117,18 +117,25 @@
             }
         };
 
+        // Funktion zum Anzeigen einer Fehlermeldung
+        const showError = (message) => {
+            const tbody = document.getElementById('data-body');
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px;">${message}</td></tr>`;
+        };
+
         // Kurse von der API für heute abrufen
         const fetchCourses = () => {
             fetch('/api/data')
-                .then(response => response.json())
                 .then(response => {
-                    // Speichere zuerst die gefilterten Daten
+                    if (!response.ok) {
+                        throw new Error('Netzwerkantwort war nicht ok');
+                    }
+                    return response.json();
+                })
+                .then(response => {
                     allData = response.data.filter(item => item.kurs && item.kurs.trim() !== '');
-                    
-                    // Erstelle ein Set von einzigartigen Kursnamen
                     const uniqueCourses = [...new Set(allData.map(item => item.kurs))].sort();
                     
-                    // Aktualisiere das Dropdown-Menü
                     const courseFilter = document.getElementById('courseFilter');
                     courseFilter.innerHTML = '<option value="all">Wähle einen Kurs</option>';
 
@@ -139,30 +146,33 @@
                         courseFilter.appendChild(option);
                     });
 
-                    // Setze den gespeicherten Kurs
                     const savedCourse = loadSelectedCourse();
                     if (uniqueCourses.includes(savedCourse) || savedCourse === 'all') {
                         courseFilter.value = savedCourse;
-                        filterData(); // Wende den Filter direkt an
+                        filterData();
                     } else {
                         renderData(allData);
                     }
                 })
-                .catch(error => console.error('Fehler beim Abrufen der Kurse:', error));
+                .catch(error => {
+                    console.error('Fehler beim Abrufen der Kurse:', error);
+                    showError('Keine Daten verfügbar');
+                });
         };
 
         // Kurse von der API für morgen abrufen
         const fetchMorgenData = () => {
             fetch('/api/morgen')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Netzwerkantwort war nicht ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    // Speichere zuerst die gefilterten Daten
                     allData = data.data.filter(item => item.kurs && item.kurs.trim() !== '');
-                    
-                    // Erstelle ein Set von einzigartigen Kursnamen
                     const uniqueCourses = [...new Set(allData.map(item => item.kurs))].sort();
                     
-                    // Aktualisiere das Dropdown-Menü
                     const courseFilter = document.getElementById('courseFilter');
                     courseFilter.innerHTML = '<option value="all">Wähle einen Kurs</option>';
 
@@ -173,38 +183,48 @@
                         courseFilter.appendChild(option);
                     });
 
-                    // Setze den gespeicherten Kurs
                     const savedCourse = loadSelectedCourse();
                     if (uniqueCourses.includes(savedCourse) || savedCourse === 'all') {
                         courseFilter.value = savedCourse;
-                        filterData(); // Wende den Filter direkt an
+                        filterData();
                     } else {
                         renderData(allData);
                     }
                 })
-                .catch(error => console.error('Fehler beim Abrufen der Morgen-Daten:', error));
+                .catch(error => {
+                    console.error('Fehler beim Abrufen der Morgen-Daten:', error);
+                    showError('Keine Daten für morgen verfügbar');
+                });
         };
 
         // Daten rendern
         const renderData = (data) => {
             const tbody = document.getElementById('data-body');
-            tbody.innerHTML = ''; // Vorherige Daten löschen
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Keine Daten verfügbar</td></tr>';
+                return;
+            }
 
+            tbody.innerHTML = '';
             data.forEach(item => {
-                const row = `<tr>
-                    <td>${item.kurs}</td>
-                    <td>${item.stunde}</td>
-                    <td>${item.raum}</td>
-                    <td>${item.lehrer}</td>
-                    <td>${item.typ}</td>
-                    <td>${item.notizen}</td>
-                </tr>`;
-                tbody.innerHTML += row;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.kurs || '-'}</td>
+                    <td>${item.stunde || '-'}</td>
+                    <td>${item.raum || '-'}</td>
+                    <td>${item.lehrer || '-'}</td>
+                    <td>${item.typ || '-'}</td>
+                    <td>${item.notizen || '-'}</td>
+                `;
+                tbody.appendChild(row);
             });
         };
 
         // Event Listener für das Kurs-Dropdown
         document.getElementById('courseFilter').addEventListener('change', filterData);
+
+        // Setze den initialen aktiven Button
+        setActiveButton('today');
 
         // Initiale Kurse und Daten abrufen
         fetchCourses();

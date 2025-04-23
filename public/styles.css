@@ -1,127 +1,258 @@
+:root {
+    --primary-color: #333;
+    --background-color: #f4f4f4;
+    --card-background: white;
+    --header-background: #f0f0f0;
+    --button-background: rgba(0, 0, 0, 0.2);
+    --button-hover: rgba(0, 0, 0, 0.3);
+    --table-row-even: rgba(0, 0, 0, 0.02);
+    --table-row-hover: rgba(0, 0, 0, 0.05);
+    --border-radius: 8px;
+    --spacing: 12px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    background-color: var(--background-color);
     margin: 0;
-    padding: 20px;
+    padding: var(--spacing);
+    min-height: 100vh;
 }
 
 .container {
-    max-width: 100%;
+    max-width: 1200px;
     margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    overflow-x: auto;
+    background: var(--card-background);
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    box-shadow: none;
 }
 
 h1 {
     text-align: center;
-    color: #333;
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing);
 }
 
-label {
-    margin-right: 10px;
+h2 {
+    text-align: center;
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    margin-bottom: var(--spacing);
 }
 
-input[type="date"],
-select {
-    margin: 0 10px;
+.controls {
+    display: flex;
+    gap: var(--spacing);
+    margin-bottom: var(--spacing);
+    align-items: center;
+    justify-content: center;
+}
+
+.button-group {
+    display: flex;
+    gap: var(--spacing);
 }
 
 button {
-    background-color: rgba(0, 0, 0, 0.2); /* Grüner Hintergrund */
-    border: none; /* Keine Rahmen */
-    color: black; /* Weiße Schriftfarbe */
-    padding: 10px 15px; /* Innenabstand */
-    text-align: center; /* Text zentrieren */
-    text-decoration: none; /* Keine Unterstreichung */
-    display: inline-block; /* Inline-Block-Element */
-    font-size: 16px; /* Schriftgröße */
-    margin: 5px; /* Abstand zwischen den Buttons */
-    cursor: pointer; /* Zeiger-Cursor */
-    border-radius: 5px; /* Abgerundete Ecken */
-    transition: background-color 0.3s; /* Übergangseffekt */
+    background: var(--button-background);
+    border: none;
+    color: black;
+    padding: 12px 24px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: var(--border-radius);
+    transition: background-color 0.3s;
+    min-width: 120px;
 }
 
 button:hover {
-    background-color: rgba(0, 0, 0, 0.3); /* Dunklerer Grünton beim Hover */
+    background: var(--button-hover);
 }
 
 button.active {
-    background-color: rgba(0, 0, 0, 0.3); /* Dunklerer Grünton für den aktiven Button */
-    color: black; /* Weiße Schriftfarbe */
+    background-color: var(--button-hover);
+    font-weight: bold;
 }
 
 select {
-    background-color: rgba(0, 0, 0, 0.2); /* Grüner Hintergrund */
-    color: black; /* Weiße Schriftfarbe */
-    padding: 10px; /* Innenabstand */
-    border: none; /* Keine Rahmen */
-    border-radius: 5px; /* Abgerundete Ecken */
-    font-size: 16px; /* Schriftgröße */
-    margin: 5px; /* Abstand zwischen den Elementen */
-    cursor: pointer; /* Zeiger-Cursor */
-    transition: background-color 0.3s; /* Übergangseffekt */
+    background: var(--button-background);
+    color: black;
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    min-width: 200px;
+    max-width: 300px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
 }
 
 select:hover {
-    background-color: rgba(0, 0, 0, 0.3); /* Dunklerer Grünton beim Hover */
+    background-color: var(--button-hover);
+}
+
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: var(--spacing);
+    background: var(--card-background);
+    border-radius: var(--border-radius);
+    isolation: isolate;
+    position: relative;
+    z-index: 0;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 20px;
     min-width: 600px;
+    background: var(--card-background);
+    table-layout: fixed;
+    position: relative;
+    z-index: 1;
 }
 
 th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+    padding: 12px;
     text-align: left;
+    border-bottom: 1px solid #ddd;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
+    background: var(--card-background);
+    position: relative;
 }
 
 th {
-    background-color: #f2f2f2;
+    background: var(--header-background);
+    color: black;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
 }
 
-tr:nth-child(even) {
-    background-color: #f9f9f9;
+/* Spaltenbreiten */
+th:nth-child(1), td:nth-child(1) { width: 15%; } /* Kurs */
+th:nth-child(2), td:nth-child(2) { width: 10%; } /* Stunde */
+th:nth-child(3), td:nth-child(3) { width: 15%; } /* Raum */
+th:nth-child(4), td:nth-child(4) { width: 15%; } /* Lehrer */
+th:nth-child(5), td:nth-child(5) { width: 15%; } /* Typ */
+th:nth-child(6), td:nth-child(6) { width: 30%; } /* Notizen */
+
+tr {
+    background: var(--card-background);
+    position: relative;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    opacity: 1;
 }
 
+tr:hover td {
+    background: var(--table-row-hover);
+    box-shadow: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+}
+
+/* Mobile Optimierungen */
 @media screen and (max-width: 768px) {
+    :root {
+        --spacing: 8px;
+    }
+
+    body {
+        padding: 8px;
+    }
+
     .container {
-        padding: 10px;
+        padding: 12px;
         margin: 0;
-        border-radius: 0;
+        border-radius: var(--border-radius);
     }
 
-    button, select {
-        width: 100%;
-        margin: 5px 0;
+    h1 {
+        font-size: 1.5rem;
     }
 
-    .container > div {
-        display: flex;
+    h2 {
+        font-size: 1.2rem;
+    }
+
+    .controls {
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 15px;
     }
 
-    .table-container {
+    .button-group {
         width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
     }
 
-    table {
-        font-size: 14px;
+    button {
+        flex: 1;
+        min-width: unset;
+        padding: 12px;
+    }
+
+    select {
+        width: 100%;
+        max-width: unset;
     }
 
     th, td {
-        padding: 6px;
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    /* Horizontales Scrollen mit visuellem Indikator */
+    .table-container {
+        position: relative;
+    }
+
+    .table-container::after {
+        display: none; /* Entfernt den Gradient-Effekt */
+    }
+
+    /* Verbesserte Touch-Interaktion */
+    button, select {
+        min-height: 44px;
+    }
+}
+
+/* Landscape-Modus Optimierungen */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    .controls {
+        flex-direction: row;
+    }
+
+    .button-group {
+        width: auto;
+    }
+
+    select {
+        width: auto;
+        min-width: 200px;
     }
 }
