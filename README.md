@@ -49,8 +49,7 @@ http://localhost:3000
 vertretungsplan/
 ├── public/               # Statische Dateien
 │   ├── index.html       # Frontend-Interface
-│   ├── styles.css       # Styling
-│   └── das.webp         # Favicon
+│   └── styles.css       # Styling
 ├── data/                # Gespeicherte Vertretungsdaten
 ├── scrape.js           # Backend-Server & Scraping-Logik
 ├── package.json        # Projekt-Konfiguration
