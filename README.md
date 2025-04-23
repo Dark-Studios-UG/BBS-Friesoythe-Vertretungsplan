@@ -1,6 +1,8 @@
-# Vertretungsplan
+# Vertretungsplan BBS Friesoythe
 
 Ein moderner und benutzerfreundlicher Vertretungsplan für die BBS Friesoythe. Die Anwendung zeigt Vertretungen für heute und morgen an und ermöglicht das Filtern nach Kursen.
+
+🌐 **Website:** [bbsvertretung.darkstudios.de](https://bbsvertretung.darkstudios.de)
 
 ## Features
 
@@ -22,8 +24,8 @@ Ein moderner und benutzerfreundlicher Vertretungsplan für die BBS Friesoythe. D
 
 1. Repository klonen:
 ```bash
-git clone https://github.com/Dark-Animations-Studio/vertretungsplan.git
-cd vertretungsplan
+git clone https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan.git
+cd BBS-Friesoythe-Vertretungsplan
 ```
 
 2. Dependencies installieren:
@@ -80,4 +82,6 @@ ISC Lizenz - siehe [LICENSE](LICENSE) für Details.
 
 ## Kontakt
 
-Projekt Link: [https://github.com/Dark-Animations-Studio/vertretungsplan](https://github.com/Dark-Animations-Studio/vertretungsplan) 
+Projekt Link: [https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan](https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan)
+Projekt Website: [bbsvertretung.darkstudios.de](https://bbsvertretung.darkstudios.de) 
+Website: [darkstudios.de](https://darkstudios.de) 

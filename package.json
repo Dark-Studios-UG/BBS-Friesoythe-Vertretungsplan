@@ -1,5 +1,5 @@
 {
-  "name": "vertretungsplan",
+  "name": "bbs-friesoythe-vertretungsplan",
   "version": "1.0.0",
   "description": "Ein moderner und benutzerfreundlicher Vertretungsplan für die BBS Friesoythe",
   "main": "scrape.js",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Dark-Animations-Studio/vertretungsplan.git"
+    "url": "git+https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan.git"
   },
   "keywords": [
     "vertretungsplan",
@@ -19,12 +19,12 @@
     "timetable",
     "substitution-plan"
   ],
-  "author": "Dark Animations Studio",
+  "author": "Dark Studios",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Dark-Animations-Studio/vertretungsplan/issues"
+    "url": "https://github.com/Dark-Studios/BBS-Friesoythe-Vertretungsplan/issues"
   },
-  "homepage": "https://github.com/Dark-Animations-Studio/vertretungsplan#readme",
+  "homepage": "https://bbsvertretung.darkstudios.de",
   "dependencies": {
     "axios": "^1.8.4",
     "cheerio": "^1.0.0",

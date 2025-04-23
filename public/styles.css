@@ -5,7 +5,7 @@
     --header-background: #f0f0f0;
     --button-background: rgba(0, 0, 0, 0.2);
     --button-hover: rgba(0, 0, 0, 0.3);
-    --table-row-even: rgba(0, 0, 0, 0.02);
+    --table-row-even: #f8f9fa;
     --table-row-hover: rgba(0, 0, 0, 0.05);
     --table-gradient-start: #ffffff;
     --table-gradient-end: #f8f9fa;
@@ -158,8 +158,12 @@ th:nth-child(4), td:nth-child(4) { width: 15%; } /* Lehrer */
 th:nth-child(5), td:nth-child(5) { width: 15%; } /* Typ */
 th:nth-child(6), td:nth-child(6) { width: 30%; } /* Notizen */
 
-tr {
-    transition: background-color 0.2s ease;
+tr:nth-child(even) {
+    background-color: var(--table-row-even);
+}
+
+tr:nth-child(odd) {
+    background-color: var(--table-gradient-start);
 }
 
 tr:hover td {
