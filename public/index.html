@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Vertretungsplan der BBS Friesoythe">
+    <meta name="theme-color" content="#f4f4f4">
     <link rel="icon" type="image/png" href="das.webp">
     <title>Vertretungsplan</title>
     <link rel="stylesheet" href="styles.css">
@@ -18,7 +20,6 @@
             </div>
             <select id="courseFilter">
                 <option value="all">Wähle einen Kurs</option>
-                <!-- Kurse werden hier dynamisch hinzugefügt -->
             </select>
         </div>
         <div class="table-container">
@@ -33,201 +34,188 @@
                         <th>Notizen</th>
                     </tr>
                 </thead>
-                <tbody id="data-body">
-                    <!-- Daten werden hier eingefügt -->
-                </tbody>
+                <tbody id="data-body"></tbody>
             </table>
         </div>
     </div>
     <script>
-        // Aktuelles Datum im Format Wochentag, TT.MM.JJJJ
-        const today = new Date();
-        const currentHour = today.getHours(); // Aktuelle Stunde
+        // Konstanten
+        const API = {
+            TODAY: '/api/data',
+            TOMORROW: '/api/morgen'
+        };
 
-        // Überprüfe, ob die aktuelle Stunde 17 oder später ist
-        if (currentHour >= 17) {
-            today.setDate(today.getDate() + 1); // Setze das Datum auf morgen
+        const STORAGE_KEYS = {
+            SELECTED_COURSE: 'selectedCourse'
+        };
+
+        const DOM = {
+            date: document.getElementById('date'),
+            todayButton: document.getElementById('todayButton'),
+            tomorrowButton: document.getElementById('tomorrowButton'),
+            courseFilter: document.getElementById('courseFilter'),
+            dataBody: document.getElementById('data-body')
+        };
+
+        // Datum-Management
+        class DateManager {
+            static SWITCH_HOUR = 17;
+
+            static getCurrentDate() {
+                const today = new Date();
+                if (today.getHours() >= this.SWITCH_HOUR) {
+                    today.setDate(today.getDate() + 1);
+                }
+                return today;
+            }
+
+            static getTomorrowDate() {
+                const tomorrow = new Date(this.getCurrentDate());
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                return tomorrow;
+            }
+
+            static formatDate(date) {
+                const options = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' };
+                return date.toLocaleDateString('de-DE', options);
+            }
         }
 
-        const options = { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' };
-        document.getElementById('date').textContent = today.toLocaleDateString('de-DE', options);
+        // Daten-Management
+        class DataManager {
+            static allData = [];
 
-        // Setze das Datum auf heute oder morgen
-        const tomorrow = new Date();
-        tomorrow.setDate(today.getDate() + 1); // Setze das Datum auf morgen
-
-        // Funktion zum Setzen des Datums
-        const setDate = (date) => {
-            document.getElementById('date').textContent = date.toLocaleDateString('de-DE', options);
-        };
-
-        // Event Listener für die Schaltflächen
-        document.getElementById('todayButton').addEventListener('click', () => {
-            setDate(today);
-            setActiveButton('today');
-            fetchCourses();
-        });
-
-        document.getElementById('tomorrowButton').addEventListener('click', () => {
-            setDate(tomorrow);
-            setActiveButton('tomorrow');
-            fetchMorgenData();
-        });
-
-        // Funktion zum Setzen des aktiven Buttons
-        const setActiveButton = (active) => {
-            const todayButton = document.getElementById('todayButton');
-            const tomorrowButton = document.getElementById('tomorrowButton');
-
-            if (active === 'today') {
-                todayButton.classList.add('active');
-                tomorrowButton.classList.remove('active');
-            } else {
-                tomorrowButton.classList.add('active');
-                todayButton.classList.remove('active');
-            }
-        };
-
-        let allData = []; // Variable zum Speichern der gescrapten Daten
-
-        // Funktion zum Speichern des ausgewählten Kurses
-        const saveSelectedCourse = (course) => {
-            localStorage.setItem('selectedCourse', course);
-        };
-
-        // Funktion zum Laden des gespeicherten Kurses
-        const loadSelectedCourse = () => {
-            return localStorage.getItem('selectedCourse') || 'all';
-        };
-
-        // Daten filtern
-        const filterData = () => {
-            const selectedCourse = document.getElementById('courseFilter').value;
-            
-            // Speichere den ausgewählten Kurs
-            saveSelectedCourse(selectedCourse);
-            
-            if (selectedCourse === 'all') {
-                renderData(allData);
-            } else {
-                const filteredData = allData.filter(item => {
-                    return item.kurs.trim() === selectedCourse.trim();
-                });
-                renderData(filteredData);
-            }
-        };
-
-        // Funktion zum Anzeigen einer Fehlermeldung
-        const showError = (message) => {
-            const tbody = document.getElementById('data-body');
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px;">${message}</td></tr>`;
-        };
-
-        // Kurse von der API für heute abrufen
-        const fetchCourses = () => {
-            fetch('/api/data')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Netzwerkantwort war nicht ok');
-                    }
-                    return response.json();
-                })
-                .then(response => {
-                    allData = response.data.filter(item => item.kurs && item.kurs.trim() !== '');
-                    const uniqueCourses = [...new Set(allData.map(item => item.kurs))].sort();
+            static async fetchData(isToday = true) {
+                try {
+                    const response = await fetch(isToday ? API.TODAY : API.TOMORROW);
+                    if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
                     
-                    const courseFilter = document.getElementById('courseFilter');
-                    courseFilter.innerHTML = '<option value="all">Wähle einen Kurs</option>';
-
-                    uniqueCourses.forEach(course => {
-                        const option = document.createElement('option');
-                        option.value = course;
-                        option.textContent = course;
-                        courseFilter.appendChild(option);
-                    });
-
-                    const savedCourse = loadSelectedCourse();
-                    if (uniqueCourses.includes(savedCourse) || savedCourse === 'all') {
-                        courseFilter.value = savedCourse;
-                        filterData();
-                    } else {
-                        renderData(allData);
-                    }
-                })
-                .catch(error => {
-                    console.error('Fehler beim Abrufen der Kurse:', error);
-                    showError('Keine Daten verfügbar');
-                });
-        };
-
-        // Kurse von der API für morgen abrufen
-        const fetchMorgenData = () => {
-            fetch('/api/morgen')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Netzwerkantwort war nicht ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    allData = data.data.filter(item => item.kurs && item.kurs.trim() !== '');
-                    const uniqueCourses = [...new Set(allData.map(item => item.kurs))].sort();
-                    
-                    const courseFilter = document.getElementById('courseFilter');
-                    courseFilter.innerHTML = '<option value="all">Wähle einen Kurs</option>';
-
-                    uniqueCourses.forEach(course => {
-                        const option = document.createElement('option');
-                        option.value = course;
-                        option.textContent = course;
-                        courseFilter.appendChild(option);
-                    });
-
-                    const savedCourse = loadSelectedCourse();
-                    if (uniqueCourses.includes(savedCourse) || savedCourse === 'all') {
-                        courseFilter.value = savedCourse;
-                        filterData();
-                    } else {
-                        renderData(allData);
-                    }
-                })
-                .catch(error => {
-                    console.error('Fehler beim Abrufen der Morgen-Daten:', error);
-                    showError('Keine Daten für morgen verfügbar');
-                });
-        };
-
-        // Daten rendern
-        const renderData = (data) => {
-            const tbody = document.getElementById('data-body');
-            if (!data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Keine Daten verfügbar</td></tr>';
-                return;
+                    const data = await response.json();
+                    // Filtere leere oder nur aus Leerzeichen bestehende Kurse
+                    this.allData = data.data.filter(item => item.kurs?.trim());
+                    return {
+                        data: this.allData,
+                        // Entferne Duplikate und leere Kurse
+                        courses: [...new Set(this.allData.map(item => item.kurs.trim()))].filter(Boolean).sort()
+                    };
+                } catch (error) {
+                    console.error('Fehler beim Abrufen der Daten:', error);
+                    throw error;
+                }
             }
 
-            tbody.innerHTML = '';
-            data.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${item.kurs || '-'}</td>
-                    <td>${item.stunde || '-'}</td>
-                    <td>${item.raum || '-'}</td>
-                    <td>${item.lehrer || '-'}</td>
-                    <td>${item.typ || '-'}</td>
-                    <td>${item.notizen || '-'}</td>
+            static filterData(selectedCourse) {
+                if (selectedCourse === 'all') return this.allData;
+                return this.allData.filter(item => item.kurs.trim() === selectedCourse.trim());
+            }
+        }
+
+        // UI-Management
+        class UIManager {
+            static updateDateDisplay(date) {
+                DOM.date.textContent = DateManager.formatDate(date);
+            }
+
+            static setActiveButton(isToday) {
+                DOM.todayButton.classList.toggle('active', isToday);
+                DOM.tomorrowButton.classList.toggle('active', !isToday);
+            }
+
+            static updateCourseFilter(courses) {
+                DOM.courseFilter.innerHTML = '<option value="all">Wähle einen Kurs</option>';
+                courses.sort().forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course;
+                    option.textContent = course;
+                    DOM.courseFilter.appendChild(option);
+                });
+            }
+
+            static renderData(data) {
+                if (!data || data.length === 0) {
+                    this.showMessage('Keine Daten verfügbar');
+                    return;
+                }
+
+                DOM.dataBody.innerHTML = '';
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${item.kurs || '-'}</td>
+                        <td>${item.stunde || '-'}</td>
+                        <td>${item.raum || '-'}</td>
+                        <td>${item.lehrer || '-'}</td>
+                        <td>${item.typ || '-'}</td>
+                        <td>${item.notizen || '-'}</td>
+                    `;
+                    DOM.dataBody.appendChild(row);
+                });
+            }
+
+            static showMessage(message) {
+                DOM.dataBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px;">
+                            ${message}
+                        </td>
+                    </tr>
                 `;
-                tbody.appendChild(row);
-            });
-        };
+            }
+        }
 
-        // Event Listener für das Kurs-Dropdown
-        document.getElementById('courseFilter').addEventListener('change', filterData);
+        // Storage-Management
+        class StorageManager {
+            static saveSelectedCourse(course) {
+                localStorage.setItem(STORAGE_KEYS.SELECTED_COURSE, course);
+            }
 
-        // Setze den initialen aktiven Button
-        setActiveButton('today');
+            static loadSelectedCourse() {
+                return localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE) || 'all';
+            }
+        }
 
-        // Initiale Kurse und Daten abrufen
-        fetchCourses();
+        // Event-Handler
+        class EventHandler {
+            static async init() {
+                DOM.todayButton.addEventListener('click', () => this.handleDateChange(true));
+                DOM.tomorrowButton.addEventListener('click', () => this.handleDateChange(false));
+                DOM.courseFilter.addEventListener('change', () => this.handleCourseChange());
+
+                // Initial load
+                await this.handleDateChange(true);
+            }
+
+            static async handleDateChange(isToday) {
+                try {
+                    UIManager.setActiveButton(isToday);
+                    UIManager.updateDateDisplay(
+                        isToday ? DateManager.getCurrentDate() : DateManager.getTomorrowDate()
+                    );
+
+                    const data = await DataManager.fetchData(isToday);
+                    UIManager.updateCourseFilter(data.courses);
+
+                    const savedCourse = StorageManager.loadSelectedCourse();
+                    if (data.courses.includes(savedCourse) || savedCourse === 'all') {
+                        DOM.courseFilter.value = savedCourse;
+                        this.handleCourseChange();
+                    } else {
+                        UIManager.renderData(DataManager.allData);
+                    }
+                } catch (error) {
+                    UIManager.showMessage('Fehler beim Laden der Daten');
+                }
+            }
+
+            static handleCourseChange() {
+                const selectedCourse = DOM.courseFilter.value;
+                StorageManager.saveSelectedCourse(selectedCourse);
+                UIManager.renderData(DataManager.filterData(selectedCourse));
+            }
+        }
+
+        // Anwendung starten
+        EventHandler.init();
     </script>
 </body>
 </html>

@@ -1,29 +1,41 @@
 {
-  "dependencies": {
-    "axios": "^1.8.4",
-    "cheerio": "^1.0.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7",
-    "puppeteer": "^24.7.1"
-  },
   "name": "vertretungsplan",
   "version": "1.0.0",
+  "description": "Ein moderner und benutzerfreundlicher Vertretungsplan für die BBS Friesoythe",
   "main": "scrape.js",
   "scripts": {
+    "start": "node scrape.js",
+    "dev": "nodemon scrape.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Dark-Animations-Studio/vertretungsplan.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "vertretungsplan",
+    "bbs-friesoythe",
+    "school",
+    "timetable",
+    "substitution-plan"
+  ],
+  "author": "Dark Animations Studio",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Dark-Animations-Studio/vertretungsplan/issues"
   },
   "homepage": "https://github.com/Dark-Animations-Studio/vertretungsplan#readme",
-  "description": ""
+  "dependencies": {
+    "axios": "^1.8.4",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "puppeteer": "^24.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }

@@ -7,6 +7,8 @@
     --button-hover: rgba(0, 0, 0, 0.3);
     --table-row-even: rgba(0, 0, 0, 0.02);
     --table-row-hover: rgba(0, 0, 0, 0.05);
+    --table-gradient-start: #ffffff;
+    --table-gradient-end: #f8f9fa;
     --border-radius: 8px;
     --spacing: 12px;
 }
@@ -115,19 +117,17 @@ select:hover {
     margin-top: var(--spacing);
     background: var(--card-background);
     border-radius: var(--border-radius);
-    isolation: isolate;
-    position: relative;
-    z-index: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     min-width: 600px;
-    background: var(--card-background);
+    background: linear-gradient(to bottom, 
+        var(--table-gradient-start) 0%,
+        var(--table-gradient-end) 100%);
     table-layout: fixed;
-    position: relative;
-    z-index: 1;
 }
 
 th, td {
@@ -138,20 +138,16 @@ th, td {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    background: var(--card-background);
-    position: relative;
+    background: transparent;
 }
 
 th {
     background: var(--header-background);
-    color: black;
     font-weight: bold;
     position: sticky;
     top: 0;
     z-index: 2;
-    box-shadow: none;
-    -webkit-box-shadow: none;
-    -moz-box-shadow: none;
+    border-bottom: 2px solid #ddd;
 }
 
 /* Spaltenbreiten */
@@ -163,19 +159,11 @@ th:nth-child(5), td:nth-child(5) { width: 15%; } /* Typ */
 th:nth-child(6), td:nth-child(6) { width: 30%; } /* Notizen */
 
 tr {
-    background: var(--card-background);
-    position: relative;
-    box-shadow: none;
-    -webkit-box-shadow: none;
-    -moz-box-shadow: none;
-    opacity: 1;
+    transition: background-color 0.2s ease;
 }
 
 tr:hover td {
     background: var(--table-row-hover);
-    box-shadow: none;
-    -webkit-box-shadow: none;
-    -moz-box-shadow: none;
 }
 
 /* Mobile Optimierungen */
