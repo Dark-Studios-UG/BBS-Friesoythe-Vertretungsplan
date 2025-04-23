@@ -49,7 +49,6 @@ http://localhost:3000
 vertretungsplan/
 ├── public/               # Statische Dateien
 │   ├── index.html       # Frontend-Interface
-│   ├── app.js           # JavaScript
 │   └── styles.css       # Styling
 ├── data/                # Gespeicherte Vertretungsdaten
 ├── scrape.js           # Backend-Server & Scraping-Logik
