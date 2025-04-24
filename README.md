@@ -49,6 +49,7 @@ http://localhost:3000
 vertretungsplan/
 ├── public/               # Statische Dateien
 │   ├── index.html       # Frontend-Interface
+│   ├── script.js        # JavaScript Code
 │   └── styles.css       # Styling
 ├── data/                # Gespeicherte Vertretungsdaten
 ├── scrape.js           # Backend-Server & Scraping-Logik
@@ -60,6 +61,7 @@ vertretungsplan/
 
 - `GET /api/data` - Vertretungsdaten für heute
 - `GET /api/morgen` - Vertretungsdaten für morgen
+- `GET /api/both` - Vertretungsdaten für beide Tage zsm
 
 ## Automatische Updates
 
@@ -115,7 +117,7 @@ ENTSTANDEN.
 
 ## Kontakt
 
-Verbesserungsvorschläge oder Bewertungen: [Google Forms](https://forms.gle/e3auU1w4AGazuSZJ9)
+Verbesserungsvorschläge oder Bewertungen: [https://forms.gle/e3auU1w4AGazuSZJ9](https://forms.gle/e3auU1w4AGazuSZJ9)
 
 Projekt Link: [https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan](https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan)  
 

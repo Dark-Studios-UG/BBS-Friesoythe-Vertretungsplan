@@ -76,12 +76,37 @@ const getCorrectDate = () => {
     return now.toISOString().split('T')[0];
 };
 
+// Add URL validation function
+const validateUrl = async (page, url) => {
+    try {
+        const response = await page.goto(url, { 
+            waitUntil: ['networkidle2', 'domcontentloaded'],
+            timeout: 30000
+        });
+        
+        if (!response.ok()) {
+            throw new Error(`HTTP ${response.status()} on ${url}`);
+        }
+
+        // Check if we got redirected to a login page or error page
+        const currentUrl = page.url();
+        if (currentUrl.includes('login') || currentUrl.includes('error')) {
+            throw new Error(`Redirected to ${currentUrl}`);
+        }
+
+        return true;
+    } catch (error) {
+        console.error(`Failed to access ${url}:`, error);
+        return false;
+    }
+};
+
 /**
  * Scrapt die Vertretungsdaten von WebUntis
  * @returns {Promise<{dataToday: Array, dataTomorrow: Array}>}
  */
 const scrapeData = async () => {
-    console.log("Scraping data...");
+    console.log("Starting scraping process...");
     const browser = await puppeteer.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -90,17 +115,46 @@ const scrapeData = async () => {
     try {
         const page = await browser.newPage();
         
+        // Set longer timeout and add error logging
+        page.setDefaultTimeout(30000); // 30 seconds timeout
+        
+        // Configure page
+        await page.setViewport({ width: 1920, height: 1080 });
+        await page.setRequestInterception(true);
+        
+        // Optimize page loading
+        page.on('request', (request) => {
+            if (['image', 'stylesheet', 'font'].includes(request.resourceType())) {
+                request.abort();
+            } else {
+                request.continue();
+            }
+        });
+
         // Scrape für heute
-        await page.goto(URLS.TODAY, { waitUntil: 'networkidle2' });
+        console.log("Scraping today's data...");
+        if (!await validateUrl(page, URLS.TODAY)) {
+            throw new Error("Failed to access today's URL");
+        }
         const dataToday = await extractTableData(page);
+        console.log(`Found ${dataToday.length} entries for today`);
 
         // Scrape für morgen
-        await page.goto(URLS.TOMORROW, { waitUntil: 'networkidle2' });
+        console.log("Scraping tomorrow's data...");
+        if (!await validateUrl(page, URLS.TOMORROW)) {
+            throw new Error("Failed to access tomorrow's URL");
+        }
         const dataTomorrow = await extractTableData(page);
+        console.log(`Found ${dataTomorrow.length} entries for tomorrow`);
 
         return { dataToday, dataTomorrow };
+    } catch (error) {
+        console.error("Error during scraping:", error);
+        throw error;
     } finally {
-        await browser.close();
+        if (browser) {
+            await browser.close();
+        }
     }
 };
 
@@ -110,20 +164,38 @@ const scrapeData = async () => {
  * @returns {Promise<Array>}
  */
 const extractTableData = async (page) => {
-    return page.evaluate(() => {
-        const rows = Array.from(document.querySelectorAll('table tbody tr'));
-        return rows.map(row => {
-            const cells = row.querySelectorAll('td');
-            return {
-                kurs: cells[0]?.innerText || '',
-                stunde: cells[2]?.innerText || '',
-                raum: cells[3]?.innerText || '',
-                lehrer: cells[4]?.innerText || '',
-                typ: cells[5]?.innerText || '',
-                notizen: cells[6]?.innerText || '',
-            };
+    try {
+        // Wait for the table to be present
+        await page.waitForSelector('table tbody tr', { timeout: 30000 });
+        
+        return page.evaluate(() => {
+            const rows = Array.from(document.querySelectorAll('table tbody tr'));
+            if (!rows.length) {
+                console.log("No rows found in table");
+                return [];
+            }
+
+            return rows.map(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                if (cells.length < 7) {
+                    console.log("Row has insufficient cells:", cells.length);
+                    return null;
+                }
+
+                return {
+                    kurs: cells[0]?.innerText?.trim() || '',
+                    stunde: cells[2]?.innerText?.trim() || '',
+                    raum: cells[3]?.innerText?.trim() || '',
+                    lehrer: cells[4]?.innerText?.trim() || '',
+                    typ: cells[5]?.innerText?.trim() || '',
+                    notizen: cells[6]?.innerText?.trim() || '',
+                };
+            }).filter(Boolean); // Remove any null entries
         });
-    });
+    } catch (error) {
+        console.error("Error extracting table data:", error);
+        return [];
+    }
 };
 
 /**
