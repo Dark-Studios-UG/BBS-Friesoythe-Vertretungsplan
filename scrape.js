@@ -127,6 +127,43 @@ const extractTableData = async (page) => {
 };
 
 /**
+ * Löscht alte temporäre Dateien im data-Verzeichnis
+ */
+const cleanupOldTempFiles = () => {
+    try {
+        // Aktuelle Datum und das morgige Datum (oder nächster Schultag) ermitteln
+        const currentDateStr = getCorrectDate();
+        const currentDate = new Date(currentDateStr);
+        const tomorrowDate = new Date(currentDate);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        
+        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        const nextDate = isWeekend(tomorrowDate) 
+            ? getNextSchoolDay(tomorrowDate) 
+            : tomorrowDate;
+            
+        const nextDateStr = nextDate.toISOString().split('T')[0];
+        
+        // Alle Dateien im data-Verzeichnis durchsuchen
+        const files = fs.readdirSync(dataDir);
+        
+        // Temporäre Dateien filtern und löschen, außer die aktuellen und morgigen
+        files.forEach(file => {
+            if (file.startsWith('temp_') && 
+                file !== `temp_${currentDateStr}.json` && 
+                file !== `temp_${nextDateStr}.json`) {
+                
+                const filePath = path.join(dataDir, file);
+                fs.unlinkSync(filePath);
+                console.log(`Alte temporäre Datei gelöscht: ${file}`);
+            }
+        });
+    } catch (error) {
+        console.error('Fehler beim Löschen alter temporärer Dateien:', error);
+    }
+};
+
+/**
  * Speichert die temporären Vertretungsdaten
  */
 const saveTemporaryData = async () => {
@@ -135,6 +172,31 @@ const saveTemporaryData = async () => {
         const currentDate = getCorrectDate();
         const tomorrowDate = new Date(currentDate);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        
+        // Lösche alte temporäre Dateien
+        cleanupOldTempFiles();
+        
+        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        if (isWeekend(tomorrowDate)) {
+            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
+            const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
+            
+            // Speichere Daten mit Kurs-Liste
+            const saveData = (data, date) => {
+                fs.writeFileSync(
+                    path.join(dataDir, `temp_${date}.json`),
+                    JSON.stringify({
+                        data,
+                        courses: [...new Set(data.map(item => item.kurs))]
+                    })
+                );
+            };
+
+            saveData(dataToday, currentDate);
+            saveData(dataTomorrow, nextSchoolDayStr);
+            return;
+        }
+        
         const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
 
         // Speichere Daten mit Kurs-Liste
@@ -165,16 +227,34 @@ const createDailyBackup = async () => {
         const currentDate = getCorrectDate();
         const tomorrowDate = new Date(currentDate);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        
+        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        if (isWeekend(tomorrowDate)) {
+            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
+            const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
+            
+            // Backup Daten speichern
+            const createBackup = (data, date) => {
+                fs.writeFileSync(
+                    path.join(dataDir, `data_${date}.json`),
+                    JSON.stringify({
+                        data,
+                        courses: [...new Set(data.map(item => item.kurs))]
+                    })
+                );
+            };
+
+            createBackup(dataToday, currentDate);
+            createBackup(dataTomorrow, nextSchoolDayStr);
+            return;
+        }
+        
         const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
 
-        // Backup-Verzeichnisse erstellen
+        // Backup Daten speichern
         const createBackup = (data, date) => {
-            const backupDir = path.join(dataDir, `data_${date}`);
-            if (!fs.existsSync(backupDir)) {
-                fs.mkdirSync(backupDir, { recursive: true });
-            }
             fs.writeFileSync(
-                path.join(backupDir, 'data.json'),
+                path.join(dataDir, `data_${date}.json`),
                 JSON.stringify({
                     data,
                     courses: [...new Set(data.map(item => item.kurs))]
@@ -292,8 +372,7 @@ app.get('/api/both', async (req, res) => {
  */
 const getDataForDate = async (date) => {
     const tempFile = path.join(dataDir, `temp_${date}.json`);
-    const backupDir = path.join(dataDir, `data_${date}`);
-    const backupFile = path.join(backupDir, 'data.json');
+    const backupFile = path.join(dataDir, `data_${date}.json`);
 
     try {
         // Versuche zuerst die temporäre Datei zu lesen
