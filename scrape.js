@@ -55,33 +55,52 @@ const getNextSchoolDay = (date) => {
  * @returns {string} Datum im Format YYYY-MM-DD
  */
 const getCorrectDate = () => {
+    // Erstelle Datum in deutscher Zeitzone
     const now = new Date();
-    if (now.getHours() >= SWITCH_HOUR) {
+    const germanTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    
+    // Wenn es nach SWITCH_HOUR ist, zum nächsten Tag springen
+    if (germanTime.getHours() >= SWITCH_HOUR) {
         // Wenn aktuell Wochenende ist und nach SWITCH_HOUR, zum nächsten Schultag springen
-        if (isWeekend(now)) {
-            const nextSchoolDay = getNextSchoolDay(now);
+        if (isWeekend(germanTime)) {
+            const nextSchoolDay = getNextSchoolDay(germanTime);
             return nextSchoolDay.toISOString().split('T')[0];
         }
-        now.setDate(now.getDate() + 1);
+        germanTime.setDate(germanTime.getDate() + 1);
         // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-        if (isWeekend(now)) {
-            const nextSchoolDay = getNextSchoolDay(now);
+        if (isWeekend(germanTime)) {
+            const nextSchoolDay = getNextSchoolDay(germanTime);
             return nextSchoolDay.toISOString().split('T')[0];
         }
-    } else if (isWeekend(now)) {
+    } else if (isWeekend(germanTime)) {
         // Wenn aktuell Wochenende ist, zum nächsten Schultag springen
-        const nextSchoolDay = getNextSchoolDay(now);
+        const nextSchoolDay = getNextSchoolDay(germanTime);
         return nextSchoolDay.toISOString().split('T')[0];
     }
-    return now.toISOString().split('T')[0];
+    
+    return germanTime.toISOString().split('T')[0];
+};
+
+// Add retry logic helper function
+const retry = async (fn, retries = 3, delay = 5000) => {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.log(`Attempt ${i + 1} failed, retrying in ${delay/1000} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
 };
 
 // Add URL validation function
 const validateUrl = async (page, url) => {
     try {
+        console.log(`Attempting to access ${url}...`);
         const response = await page.goto(url, { 
             waitUntil: ['networkidle2', 'domcontentloaded'],
-            timeout: 30000
+            timeout: 60000  // Increased timeout to 60 seconds
         });
         
         if (!response.ok()) {
@@ -94,6 +113,7 @@ const validateUrl = async (page, url) => {
             throw new Error(`Redirected to ${currentUrl}`);
         }
 
+        console.log(`Successfully accessed ${url}`);
         return true;
     } catch (error) {
         console.error(`Failed to access ${url}:`, error);
@@ -107,45 +127,59 @@ const validateUrl = async (page, url) => {
  */
 const scrapeData = async () => {
     console.log("Starting scraping process...");
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-
+    let browser;
     try {
-        const page = await browser.newPage();
-        
-        // Set longer timeout and add error logging
-        page.setDefaultTimeout(30000); // 30 seconds timeout
-        
-        // Configure page
-        await page.setViewport({ width: 1920, height: 1080 });
-        await page.setRequestInterception(true);
-        
-        // Optimize page loading
-        page.on('request', (request) => {
-            if (['image', 'stylesheet', 'font'].includes(request.resourceType())) {
-                request.abort();
-            } else {
-                request.continue();
-            }
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
 
-        // Scrape für heute
-        console.log("Scraping today's data...");
-        if (!await validateUrl(page, URLS.TODAY)) {
-            throw new Error("Failed to access today's URL");
-        }
-        const dataToday = await extractTableData(page);
-        console.log(`Found ${dataToday.length} entries for today`);
+        // Erstelle zwei separate Pages für parallele Verarbeitung
+        const [pageToday, pageTomorrow] = await Promise.all([
+            browser.newPage(),
+            browser.newPage()
+        ]);
 
-        // Scrape für morgen
-        console.log("Scraping tomorrow's data...");
-        if (!await validateUrl(page, URLS.TOMORROW)) {
-            throw new Error("Failed to access tomorrow's URL");
+        // Konfiguriere beide Pages
+        for (const page of [pageToday, pageTomorrow]) {
+            page.setDefaultTimeout(60000); // 60 seconds timeout
+            await page.setViewport({ width: 1920, height: 1080 });
+            await page.setRequestInterception(true);
+            
+            // Optimize page loading
+            page.on('request', (request) => {
+                if (['image', 'stylesheet', 'font'].includes(request.resourceType())) {
+                    request.abort();
+                } else {
+                    request.continue();
+                }
+            });
         }
-        const dataTomorrow = await extractTableData(page);
-        console.log(`Found ${dataTomorrow.length} entries for tomorrow`);
+
+        // Parallel scraping für heute und morgen
+        console.log("Starting parallel scraping for today and tomorrow...");
+        const [dataToday, dataTomorrow] = await Promise.all([
+            // Scrape heute
+            retry(async () => {
+                console.log("Scraping today's data...");
+                if (!await validateUrl(pageToday, URLS.TODAY)) {
+                    throw new Error("Failed to access today's URL");
+                }
+                const data = await extractTableData(pageToday);
+                console.log(`Found ${data.length} entries for today`);
+                return data;
+            }),
+            // Scrape morgen
+            retry(async () => {
+                console.log("Scraping tomorrow's data...");
+                if (!await validateUrl(pageTomorrow, URLS.TOMORROW)) {
+                    throw new Error("Failed to access tomorrow's URL");
+                }
+                const data = await extractTableData(pageTomorrow);
+                console.log(`Found ${data.length} entries for tomorrow`);
+                return data;
+            })
+        ]);
 
         return { dataToday, dataTomorrow };
     } catch (error) {
