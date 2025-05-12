@@ -84,7 +84,7 @@ Dieses Projekt ist unter einer eingeschränkten Lizenz nur für persönliche Nut
 ```
 Custom Personal Use License
 
-Copyright (c) 2024 Dark Studios UG (haftungsbeschränkt)
+Copyright (c) 2025 Dark Studios UG (haftungsbeschränkt)
 
 Die Erlaubnis zur Nutzung, Kopierung, Modifizierung und/oder Verteilung dieser Software
 wird hiermit ausschließlich für persönliche, nicht-kommerzielle Zwecke erteilt,
