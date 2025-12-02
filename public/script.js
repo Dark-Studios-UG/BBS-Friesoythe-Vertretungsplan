@@ -1,13 +1,13 @@
 // Konstanten
 const API = {
-    TODAY: '/api/data',
-    TOMORROW: '/api/morgen',
-    BOTH: '/api/both'
+    DATE: '/api/date',
+    BOTH: '/api/both',
+    BOTH_DATES: '/api/both' // Für zwei spezifische Daten
 };
 
 const STORAGE_KEYS = {
     SELECTED_COURSE: 'selectedCourse',
-    SELECTED_VIEW: 'selectedView'
+    SELECTED_DATE: 'selectedDate'
 };
 
 // DOM-Elemente werden nach dem vollständigen Laden der Seite initialisiert
@@ -16,9 +16,8 @@ let DOM = {};
 document.addEventListener('DOMContentLoaded', () => {
     DOM = {
         date: document.getElementById('date'),
-        todayButton: document.getElementById('todayButton'),
-        tomorrowButton: document.getElementById('tomorrowButton'),
-        allDaysButton: document.getElementById('allDaysButton'),
+        datePicker: document.getElementById('datePicker'),
+        bothDaysButton: document.getElementById('bothDaysButton'),
         courseFilter: document.getElementById('courseFilter'),
         dataBody: document.getElementById('data-body')
     };
@@ -95,6 +94,29 @@ class DateManager {
         const date = new Date(dateStr);
         return this.formatDateShort(date);
     }
+
+    static dateToString(date) {
+        // Konvertiert Date zu YYYY-MM-DD String
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    static stringToDate(dateStr) {
+        // Konvertiert YYYY-MM-DD String zu Date
+        return new Date(dateStr + 'T00:00:00');
+    }
+
+    static getDefaultDates() {
+        // Gibt heute und morgen zurück (berücksichtigt 17 Uhr Regel)
+        const today = this.getCurrentDate();
+        const tomorrow = this.getTomorrowDate();
+        return {
+            today: this.dateToString(today),
+            tomorrow: this.dateToString(tomorrow)
+        };
+    }
 }
 
 // Daten-Management
@@ -102,24 +124,60 @@ class DataManager {
     static allData = [];
     static currentSortColumn = null;
     static isAscending = true;
-    static currentView = 'today'; // 'today', 'tomorrow', or 'both'
+    static currentMode = 'both'; // 'single' oder 'both'
+    static currentDate = null; // YYYY-MM-DD für single mode
+    static currentDates = null; // {date1, date2} für both mode
 
-    static async fetchData(view = 'today') {
+    static async fetchDataForDate(date) {
         try {
-            const response = await fetch(
-                view === 'today' ? API.TODAY : 
-                view === 'tomorrow' ? API.TOMORROW : API.BOTH
-            );
+            const response = await fetch(`${API.DATE}/${date}`);
             if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
             
             const data = await response.json();
-            // Filtere leere oder nur aus Leerzeichen bestehende Kurse
-            this.allData = data.data.filter(item => item.kurs?.trim());
-            this.currentView = view;
             return {
-                data: this.allData,
-                courses: data.courses.filter(Boolean).sort()
+                data: (data.data || []).filter(item => item.kurs?.trim()),
+                courses: (data.courses || []).filter(Boolean).sort()
             };
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Daten:', error);
+            throw error;
+        }
+    }
+
+    static async fetchDataForBothDates(date1, date2) {
+        try {
+            const response = await fetch(`${API.BOTH}/${date1}/${date2}`);
+            if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
+            
+            const data = await response.json();
+            return {
+                data: (data.data || []).filter(item => item.kurs?.trim()),
+                courses: (data.courses || []).filter(Boolean).sort()
+            };
+        } catch (error) {
+            console.error('Fehler beim Abrufen der Daten:', error);
+            throw error;
+        }
+    }
+
+    static async fetchData(mode, dateOrDates) {
+        try {
+            let result;
+            if (mode === 'both') {
+                const { date1, date2 } = dateOrDates;
+                result = await this.fetchDataForBothDates(date1, date2);
+                this.currentMode = 'both';
+                this.currentDates = { date1, date2 };
+                this.currentDate = null;
+            } else {
+                result = await this.fetchDataForDate(dateOrDates);
+                this.currentMode = 'single';
+                this.currentDate = dateOrDates;
+                this.currentDates = null;
+            }
+            
+            this.allData = result.data;
+            return result;
         } catch (error) {
             console.error('Fehler beim Abrufen der Daten:', error);
             throw error;
@@ -160,31 +218,35 @@ class DataManager {
 
 // UI-Management
 class UIManager {
-    static updateDateDisplay(date, view = 'today') {
-        if (view === 'both') {
-            const today = DateManager.getCurrentDate();
-            let tomorrow = DateManager.getTomorrowDate();
-            
-            // Ensure tomorrow is not a weekend
-            if (DateManager.isWeekend(tomorrow)) {
-                tomorrow = DateManager.getNextSchoolDay(today);
-            }
-            
-            DOM.date.textContent = `${DateManager.formatDate(today)} und ${DateManager.formatDate(tomorrow)}`;
+    static updateDateDisplay(mode, dateOrDates) {
+        if (mode === 'both') {
+            const { date1, date2 } = dateOrDates;
+            const date1Obj = DateManager.stringToDate(date1);
+            const date2Obj = DateManager.stringToDate(date2);
+            DOM.date.textContent = `${DateManager.formatDate(date1Obj)} und ${DateManager.formatDate(date2Obj)}`;
         } else {
-            DOM.date.textContent = DateManager.formatDate(date);
+            const dateObj = DateManager.stringToDate(dateOrDates);
+            DOM.date.textContent = DateManager.formatDate(dateObj);
         }
 
         // Zeige/Verstecke die Datumsspalte
         document.querySelectorAll('.date-column').forEach(el => {
-            el.style.display = view === 'both' ? '' : 'none';
+            el.style.display = mode === 'both' ? '' : 'none';
         });
     }
 
-    static setActiveButton(view) {
-        DOM.todayButton.classList.toggle('active', view === 'today');
-        DOM.tomorrowButton.classList.toggle('active', view === 'tomorrow');
-        DOM.allDaysButton.classList.toggle('active', view === 'both');
+    static updateDatePicker(date) {
+        if (date) {
+            DOM.datePicker.value = date;
+        } else {
+            // Setze auf heutiges Datum (berücksichtigt 17 Uhr Regel)
+            const today = DateManager.getCurrentDate();
+            DOM.datePicker.value = DateManager.dateToString(today);
+        }
+    }
+
+    static setBothDaysButtonActive(active) {
+        DOM.bothDaysButton.classList.toggle('active', active);
     }
 
     static updateCourseFilter(courses) {
@@ -220,7 +282,7 @@ class UIManager {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${item.kurs || '-'}</td>
-                <td class="date-column" ${DataManager.currentView !== 'both' ? 'style="display:none"' : ''}>
+                <td class="date-column" ${DataManager.currentMode !== 'both' ? 'style="display:none"' : ''}>
                     ${item.datum ? DateManager.formatDateFromString(item.datum) : '-'}
                 </td>
                 <td>${item.stunde || '-'}</td>
@@ -234,7 +296,7 @@ class UIManager {
     }
 
     static showMessage(message) {
-        const colspan = DataManager.currentView === 'both' ? 7 : 6;
+        const colspan = DataManager.currentMode === 'both' ? 7 : 6;
         DOM.dataBody.innerHTML = `
             <tr>
                 <td colspan="${colspan}" style="text-align: center; padding: 20px;">
@@ -254,8 +316,12 @@ class StorageManager {
         this.updateUrlHash();
     }
 
-    static saveSelectedView(view) {
-        localStorage.setItem(STORAGE_KEYS.SELECTED_VIEW, view);
+    static saveSelectedDate(date) {
+        if (date) {
+            localStorage.setItem(STORAGE_KEYS.SELECTED_DATE, date);
+        } else {
+            localStorage.removeItem(STORAGE_KEYS.SELECTED_DATE);
+        }
         this.updateUrlHash();
     }
 
@@ -266,18 +332,18 @@ class StorageManager {
                 return decodeURIComponent(hash.course);
             } catch (e) {
                 console.error("Fehler beim Dekodieren des Kurses aus Hash:", e);
-                return hash.course; // Fallback, falls Dekodierung fehlschlägt
+                return hash.course;
             }
         }
         return localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE) || 'all';
     }
 
-    static loadSelectedView() {
+    static loadSelectedDate() {
         const hash = this.parseUrlHash();
-        if (hash.view) {
-            return hash.view;
+        if (hash.date) {
+            return hash.date;
         }
-        return localStorage.getItem(STORAGE_KEYS.SELECTED_VIEW) || 'today';
+        return localStorage.getItem(STORAGE_KEYS.SELECTED_DATE) || null;
     }
 
     static parseUrlHash() {
@@ -286,12 +352,12 @@ class StorageManager {
         console.log("Parsing hash:", hash);
         
         const parts = hash.split(';');
-        const result = { course: null, view: null };
+        const result = { course: null, date: null };
         
         parts.forEach(part => {
-            if (part.startsWith('view=')) {
-                result.view = part.split('=')[1];
-            } else if (part) {
+            if (part.startsWith('date=')) {
+                result.date = part.split('=')[1];
+            } else if (part && !part.includes('=')) {
                 result.course = part;
             }
         });
@@ -307,14 +373,14 @@ class StorageManager {
             this.isUpdatingHash = true;
             
             const course = localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE);
-            const view = localStorage.getItem(STORAGE_KEYS.SELECTED_VIEW);
+            const date = localStorage.getItem(STORAGE_KEYS.SELECTED_DATE);
             let hash = '';
 
             if (course && course !== 'all') {
                 hash = encodeURIComponent(course);
             }
-            if (view && view !== 'today') {
-                hash = hash ? `${hash};view=${view}` : `view=${view}`;
+            if (date) {
+                hash = hash ? `${hash};date=${date}` : `date=${date}`;
             }
 
             // Only update if hash actually changed
@@ -338,12 +404,11 @@ class EventHandler {
     static isHandlingHashChange = false;
     
     static async init() {
-        // Add debug message on page load
         console.log("Initial URL hash:", window.location.hash);
         
-        DOM.todayButton.addEventListener('click', () => this.handleDateChange('today'));
-        DOM.tomorrowButton.addEventListener('click', () => this.handleDateChange('tomorrow'));
-        DOM.allDaysButton.addEventListener('click', () => this.handleDateChange('both'));
+        // Event-Listener für Datumauswahl
+        DOM.datePicker.addEventListener('change', () => this.handleDatePickerChange());
+        DOM.bothDaysButton.addEventListener('click', () => this.handleBothDaysClick());
         DOM.courseFilter.addEventListener('change', () => this.handleCourseChange());
 
         // Listen for hash changes
@@ -357,60 +422,45 @@ class EventHandler {
             header.addEventListener('click', () => this.handleSort(header.dataset.sort));
         });
 
-        // Initial load - process hash directly
+        // Initial load - Standard: beide Tage (heute und morgen)
         const hashData = StorageManager.parseUrlHash();
-        const initialView = hashData.view || 'today';
+        await this.handleInitialLoad(hashData);
+    }
 
-        // Load data for the selected view
-        await this.handleDataLoad(initialView, hashData.course);
+    static async handleInitialLoad(hashData) {
+        const savedDate = StorageManager.loadSelectedDate();
+        
+        if (savedDate && hashData.date !== savedDate) {
+            // Einzelnes Datum aus Hash oder Storage
+            await this.loadSingleDate(savedDate, hashData.course);
+        } else if (hashData.date) {
+            // Datum aus Hash
+            await this.loadSingleDate(hashData.date, hashData.course);
+        } else {
+            // Standard: beide Tage (heute und morgen)
+            await this.loadBothDays(hashData.course);
+        }
     }
     
-    static async handleDataLoad(view, initialCourse = null) {
+    static async loadSingleDate(date, initialCourse = null) {
         try {
-            UIManager.setActiveButton(view);
-            if (view === 'both') {
-                UIManager.updateDateDisplay(null, 'both');
-            } else {
-                UIManager.updateDateDisplay(
-                    view === 'today' ? DateManager.getCurrentDate() : DateManager.getTomorrowDate(),
-                    view
-                );
-            }
+            UIManager.updateDatePicker(date);
+            UIManager.setBothDaysButtonActive(false);
+            UIManager.updateDateDisplay('single', date);
 
             // Fetch data
-            const data = await DataManager.fetchData(view);
+            const data = await DataManager.fetchData('single', date);
             UIManager.updateCourseFilter(data.courses);
             
             // Set course selection
-            let courseToSelect = 'all';
-            
-            // First priority: URL hash course if specified
-            if (initialCourse) {
-                // Case insensitive match
-                const matchingCourse = this.findCourseMatch(data.courses, initialCourse);
-                if (matchingCourse) {
-                    courseToSelect = matchingCourse;
-                    console.log("Using course from hash:", courseToSelect);
-                }
-            } else {
-                // Second priority: Stored course preference
-                const savedCourse = localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE);
-                if (savedCourse && (data.courses.includes(savedCourse) || savedCourse === 'all')) {
-                    courseToSelect = savedCourse;
-                    console.log("Using saved course:", courseToSelect);
-                }
-            }
-            
-            // Set the selected course in UI and update data view
+            const courseToSelect = this.selectCourse(data.courses, initialCourse);
             DOM.courseFilter.value = courseToSelect;
             
-            // Update storage without changing hash (if using hash value)
-            if (initialCourse && courseToSelect !== 'all') {
-                localStorage.setItem(STORAGE_KEYS.SELECTED_COURSE, courseToSelect);
+            // Update storage
+            StorageManager.saveSelectedDate(date);
+            if (courseToSelect !== 'all') {
+                StorageManager.saveSelectedCourse(courseToSelect);
             }
-            
-            // Update storage with view without changing hash
-            localStorage.setItem(STORAGE_KEYS.SELECTED_VIEW, view);
             
             // Filter and render data
             const filteredData = DataManager.filterData(courseToSelect);
@@ -422,50 +472,71 @@ class EventHandler {
         }
     }
 
-    static async handleDateChange(view) {
+    static async loadBothDays(initialCourse = null) {
         try {
-            // Save current course selection before changing views
-            const currentCourse = DOM.courseFilter.value;
-            
-            // Update UI for the new view
-            UIManager.setActiveButton(view);
-            if (view === 'both') {
-                UIManager.updateDateDisplay(null, 'both');
-            } else {
-                UIManager.updateDateDisplay(
-                    view === 'today' ? DateManager.getCurrentDate() : DateManager.getTomorrowDate(),
-                    view
-                );
-            }
+            const defaultDates = DateManager.getDefaultDates();
+            const dates = { date1: defaultDates.today, date2: defaultDates.tomorrow };
+            UIManager.updateDatePicker(null); // Reset auf heutiges Datum
+            UIManager.setBothDaysButtonActive(true);
+            UIManager.updateDateDisplay('both', dates);
 
-            // Fetch new data for the selected view
-            const data = await DataManager.fetchData(view);
-            
-            // Update the course filter dropdown with available courses
+            // Fetch data
+            const data = await DataManager.fetchData('both', dates);
             UIManager.updateCourseFilter(data.courses);
-
-            // Try to maintain the previously selected course if possible
-            if (currentCourse !== 'all') {
-                // Check if the previously selected course exists in the new view
-                if (data.courses.includes(currentCourse)) {
-                    DOM.courseFilter.value = currentCourse;
-                } else {
-                    // If course is not available in this view, use 'all'
-                    DOM.courseFilter.value = 'all';
-                    console.log(`Course ${currentCourse} not available in the ${view} view, reverting to all courses`);
-                }
+            
+            // Set course selection
+            const courseToSelect = this.selectCourse(data.courses, initialCourse);
+            DOM.courseFilter.value = courseToSelect;
+            
+            // Update storage - kein einzelnes Datum gespeichert
+            StorageManager.saveSelectedDate(null);
+            if (courseToSelect !== 'all') {
+                StorageManager.saveSelectedCourse(courseToSelect);
             }
             
-            // Update storage and URL
-            localStorage.setItem(STORAGE_KEYS.SELECTED_VIEW, view);
-            StorageManager.updateUrlHash();
+            // Filter and render data
+            const filteredData = DataManager.filterData(courseToSelect);
+            UIManager.renderData(filteredData);
             
-            // Update the displayed data
-            this.handleCourseChange(false);
         } catch (error) {
             console.error('Fehler beim Laden der Daten:', error);
             UIManager.showMessage('Fehler beim Laden der Daten');
         }
+    }
+
+    static selectCourse(availableCourses, initialCourse) {
+        let courseToSelect = 'all';
+        
+        // First priority: URL hash course if specified
+        if (initialCourse) {
+            const matchingCourse = this.findCourseMatch(availableCourses, initialCourse);
+            if (matchingCourse) {
+                courseToSelect = matchingCourse;
+                console.log("Using course from hash:", courseToSelect);
+            }
+        } else {
+            // Second priority: Stored course preference
+            const savedCourse = localStorage.getItem(STORAGE_KEYS.SELECTED_COURSE);
+            if (savedCourse && (availableCourses.includes(savedCourse) || savedCourse === 'all')) {
+                courseToSelect = savedCourse;
+                console.log("Using saved course:", courseToSelect);
+            }
+        }
+        
+        return courseToSelect;
+    }
+
+    static handleDatePickerChange() {
+        const selectedDate = DOM.datePicker.value;
+        if (selectedDate) {
+            const hashData = StorageManager.parseUrlHash();
+            this.loadSingleDate(selectedDate, hashData.course);
+        }
+    }
+
+    static handleBothDaysClick() {
+        const hashData = StorageManager.parseUrlHash();
+        this.loadBothDays(hashData.course);
     }
 
     static handleCourseChange(updateHash = true) {
@@ -488,10 +559,14 @@ class EventHandler {
             this.isHandlingHashChange = true;
             
             const hashData = StorageManager.parseUrlHash();
-            const view = hashData.view || 'today';
             
-            // Direct handling of hash data for better reliability
-            this.handleDataLoad(view, hashData.course);
+            if (hashData.date) {
+                // Einzelnes Datum aus Hash
+                this.loadSingleDate(hashData.date, hashData.course);
+            } else {
+                // Standard: beide Tage
+                this.loadBothDays(hashData.course);
+            }
         } finally {
             this.isHandlingHashChange = false;
         }

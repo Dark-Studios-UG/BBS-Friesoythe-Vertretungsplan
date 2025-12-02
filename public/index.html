@@ -14,10 +14,10 @@
         <h1>Vertretungsplan</h1>
         <h2 id="date"></h2>
         <div class="controls">
-            <div class="button-group">
-                <button id="todayButton">Heute</button>
-                <button id="tomorrowButton">Morgen</button>
-                <button id="allDaysButton">Beide</button>
+            <div class="date-selection">
+                <label for="datePicker">Datum:</label>
+                <input type="date" id="datePicker">
+                <button id="bothDaysButton">Heute und Morgen</button>
             </div>
             <select id="courseFilter">
                 <option value="all">Wähle einen Kurs</option>

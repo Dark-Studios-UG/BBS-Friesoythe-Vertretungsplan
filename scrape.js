@@ -85,16 +85,41 @@ const getCorrectDate = () => {
     return germanTime.toISOString().split('T')[0];
 };
 
-// Retry-Logik für API-Anfragen
-const retry = async (fn, retries = 3, delay = 5000) => {
-    for (let i = 0; i < retries; i++) {
+/**
+ * Retry-Logik für API-Anfragen mit gestaffelten Delays
+ * 3x nach 1 Sekunde, dann 1x nach 5 Sekunden, dann 1x nach 10 Sekunden
+ * @param {Function} fn - Die auszuführende Funktion
+ * @returns {Promise} Ergebnis der Funktion
+ */
+const retry = async (fn) => {
+    // 3 Versuche mit 1 Sekunde Delay
+    for (let i = 0; i < 3; i++) {
         try {
             return await fn();
         } catch (error) {
-            if (i === retries - 1) throw error;
-            console.log(`Versuch ${i + 1} fehlgeschlagen, wiederhole in ${delay/1000} Sekunden...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            console.log(`Versuch ${i + 1}/3 fehlgeschlagen (1s Delay)...`);
+            if (i < 2) { // Nicht beim letzten Versuch warten
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
         }
+    }
+    
+    // 1 Versuch mit 5 Sekunden Delay
+    try {
+        console.log('Warte 5 Sekunden vor nächstem Versuch...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        return await fn();
+    } catch (error) {
+        console.log('Versuch nach 5s fehlgeschlagen, warte 10 Sekunden...');
+    }
+    
+    // 1 Versuch mit 10 Sekunden Delay
+    try {
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        return await fn();
+    } catch (error) {
+        console.error('Alle Versuche fehlgeschlagen');
+        throw error;
     }
 };
 
@@ -167,20 +192,35 @@ const fetchDataForDate = async (date, kurs = 'Alle') => {
 
 /**
  * Scrapt die Vertretungsdaten von der neuen API
+ * Sequenzieller Abruf (ein Tag nach dem anderen)
  * @returns {Promise<{dataToday: Array, dataTomorrow: Array}>}
  */
 const scrapeData = async () => {
     console.log("Starte Datenabruf...");
     const currentDate = getCorrectDate();
+    
+    // Prüfe, ob das aktuelle Datum ein Wochenende ist
+    const currentDateObj = new Date(currentDate);
+    if (isWeekend(currentDateObj)) {
+        console.log(`Aktuelles Datum ${currentDate} ist ein Wochenende, überspringe...`);
+        const nextSchoolDay = getNextSchoolDay(currentDateObj);
+        const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
+        console.log(`Springe zum nächsten Schultag: ${nextSchoolDayStr}`);
+    }
+    
+    // Berechne morgiges Datum
     const tomorrowDate = new Date(currentDate);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     
     // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-    const nextDate = isWeekend(tomorrowDate) 
-        ? getNextSchoolDay(tomorrowDate) 
-        : tomorrowDate;
-    
-    const tomorrowDateStr = nextDate.toISOString().split('T')[0];
+    let tomorrowDateStr;
+    if (isWeekend(tomorrowDate)) {
+        const nextSchoolDay = getNextSchoolDay(tomorrowDate);
+        tomorrowDateStr = nextSchoolDay.toISOString().split('T')[0];
+        console.log(`Morgiges Datum wäre Wochenende, verwende nächsten Schultag: ${tomorrowDateStr}`);
+    } else {
+        tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
+    }
 
     const fetchWithFallback = async (label, date) => {
         try {
@@ -191,12 +231,13 @@ const scrapeData = async () => {
         }
     };
     
-    // Paralleler Abruf für heute und morgen mit Fallback
-    console.log("Starte parallelen Datenabruf für heute und morgen...");
-    const [dataToday, dataTomorrow] = await Promise.all([
-        fetchWithFallback('heutigen', currentDate),
-        fetchWithFallback('morgigen', tomorrowDateStr)
-    ]);
+    // Sequenzieller Abruf (ein Tag nach dem anderen)
+    console.log("Starte sequenziellen Datenabruf für heute und morgen...");
+    console.log(`Lade Daten für ${currentDate}...`);
+    const dataToday = await fetchWithFallback('heutigen', currentDate);
+    
+    console.log(`Lade Daten für ${tomorrowDateStr}...`);
+    const dataTomorrow = await fetchWithFallback('morgigen', tomorrowDateStr);
 
     return { dataToday, dataTomorrow };
 };
@@ -426,7 +467,17 @@ const scheduleBackup = () => {
 app.get('/api/data', async (req, res) => {
     try {
         const currentDate = getCorrectDate();
-        const data = await getDataForDate(currentDate);
+        const currentDateObj = new Date(currentDate);
+        
+        // Prüfe, ob das Datum ein Wochenende ist
+        let dateToUse = currentDate;
+        if (isWeekend(currentDateObj)) {
+            const nextSchoolDay = getNextSchoolDay(currentDateObj);
+            dateToUse = nextSchoolDay.toISOString().split('T')[0];
+            console.log(`Aktuelles Datum ${currentDate} ist Wochenende, verwende ${dateToUse}`);
+        }
+        
+        const data = await getDataForDate(dateToUse);
         res.json(data);
     } catch (error) {
         console.error('Fehler beim Abrufen der Daten:', error);
@@ -437,19 +488,28 @@ app.get('/api/data', async (req, res) => {
 app.get('/api/morgen', async (req, res) => {
     try {
         const currentDate = getCorrectDate();
-        const tomorrowDate = new Date(currentDate);
+        const currentDateObj = new Date(currentDate);
+        
+        // Prüfe, ob das aktuelle Datum ein Wochenende ist
+        let baseDate = currentDateObj;
+        if (isWeekend(currentDateObj)) {
+            baseDate = getNextSchoolDay(currentDateObj);
+            console.log(`Aktuelles Datum ${currentDate} ist Wochenende, verwende ${baseDate.toISOString().split('T')[0]}`);
+        }
+        
+        const tomorrowDate = new Date(baseDate);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         
         // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        let tomorrowDateStr;
         if (isWeekend(tomorrowDate)) {
             const nextSchoolDay = getNextSchoolDay(tomorrowDate);
-            const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
-            const data = await getDataForDate(nextSchoolDayStr);
-            res.json(data);
-            return;
+            tomorrowDateStr = nextSchoolDay.toISOString().split('T')[0];
+            console.log(`Morgiges Datum wäre Wochenende, verwende ${tomorrowDateStr}`);
+        } else {
+            tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
         }
         
-        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
         const data = await getDataForDate(tomorrowDateStr);
         res.json(data);
     } catch (error) {
@@ -458,28 +518,40 @@ app.get('/api/morgen', async (req, res) => {
     }
 });
 
-// Endpunkt für beide Tage
+// Endpunkt für beide Tage (Standard: heute und morgen)
 app.get('/api/both', async (req, res) => {
     try {
         const currentDate = getCorrectDate();
-        const tomorrowDate = new Date(currentDate);
+        const currentDateObj = new Date(currentDate);
+        
+        // Prüfe, ob das aktuelle Datum ein Wochenende ist
+        let todayDateStr = currentDate;
+        if (isWeekend(currentDateObj)) {
+            const nextSchoolDay = getNextSchoolDay(currentDateObj);
+            todayDateStr = nextSchoolDay.toISOString().split('T')[0];
+            console.log(`Aktuelles Datum ${currentDate} ist Wochenende, verwende ${todayDateStr}`);
+        }
+        
+        const tomorrowDate = new Date(todayDateStr);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         
         // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+        let tomorrowDateStr;
         if (isWeekend(tomorrowDate)) {
             const nextSchoolDay = getNextSchoolDay(tomorrowDate);
-            tomorrowDate.setTime(nextSchoolDay.getTime());
+            tomorrowDateStr = nextSchoolDay.toISOString().split('T')[0];
+            console.log(`Morgiges Datum wäre Wochenende, verwende ${tomorrowDateStr}`);
+        } else {
+            tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
         }
-        
-        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
 
-        const todayData = await getDataForDate(currentDate);
+        const todayData = await getDataForDate(todayDateStr);
         const tomorrowData = await getDataForDate(tomorrowDateStr);
 
         // Füge das Datum zu jedem Eintrag hinzu
         const todayEntries = todayData.data.map(entry => ({
             ...entry,
-            datum: currentDate
+            datum: todayDateStr
         }));
         const tomorrowEntries = tomorrowData.data.map(entry => ({
             ...entry,
@@ -498,6 +570,81 @@ app.get('/api/both', async (req, res) => {
         res.status(500).send('Serverfehler beim Abrufen beider Tage');
     }
 });
+
+// Endpunkt für ein spezifisches Datum
+app.get('/api/date/:date', async (req, res) => {
+    try {
+        const dateParam = req.params.date;
+        // Validiere Datumsformat (YYYY-MM-DD)
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+            return res.status(400).json({ error: 'Ungültiges Datumsformat. Erwartet: YYYY-MM-DD' });
+        }
+        
+        const data = await getDataForDate(dateParam);
+        res.json(data);
+    } catch (error) {
+        console.error('Fehler beim Abrufen der Daten für Datum:', error);
+        res.status(500).send('Serverfehler beim Abrufen der Daten');
+    }
+});
+
+// Endpunkt für beide Tage mit spezifischen Daten
+app.get('/api/both/:date1/:date2', async (req, res) => {
+    try {
+        const date1 = req.params.date1;
+        const date2 = req.params.date2;
+        
+        // Validiere Datumsformate
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date1) || !/^\d{4}-\d{2}-\d{2}$/.test(date2)) {
+            return res.status(400).json({ error: 'Ungültiges Datumsformat. Erwartet: YYYY-MM-DD' });
+        }
+        
+        const data1 = await getDataForDate(date1);
+        const data2 = await getDataForDate(date2);
+
+        // Füge das Datum zu jedem Eintrag hinzu
+        const entries1 = data1.data.map(entry => ({
+            ...entry,
+            datum: date1
+        }));
+        const entries2 = data2.data.map(entry => ({
+            ...entry,
+            datum: date2
+        }));
+
+        // Kombiniere die Daten und Kurse
+        const combinedData = {
+            data: [...entries1, ...entries2].filter(item => item.kurs?.trim()),
+            courses: [...new Set([...data1.courses || [], ...data2.courses || []].filter(Boolean))]
+        };
+
+        res.json(combinedData);
+    } catch (error) {
+        console.error('Fehler beim Abrufen beider Tage:', error);
+        res.status(500).send('Serverfehler beim Abrufen beider Tage');
+    }
+});
+
+/**
+ * Speichert Daten für ein spezifisches Datum
+ * @param {string} date - Datum im Format YYYY-MM-DD
+ * @param {Array} data - Array von Vertretungseinträgen
+ */
+const saveDataForDate = (date, data) => {
+    try {
+        const tempFile = path.join(dataDir, `temp_${date}.json`);
+        fs.writeFileSync(
+            tempFile,
+            JSON.stringify({
+                data,
+                courses: [...new Set(data.map(item => item.kurs).filter(Boolean))]
+            }, null, 2)
+        );
+        console.log(`Daten für ${date} gespeichert (${data.length} Einträge)`);
+    } catch (error) {
+        console.error(`Fehler beim Speichern der Daten für ${date}:`, error);
+    }
+};
 
 /**
  * Liest Vertretungsdaten für ein bestimmtes Datum
@@ -527,17 +674,20 @@ const getDataForDate = async (date) => {
             };
         }
 
-        // Wenn keine Datei existiert, hole neue Daten
-        await saveTemporaryData();
-        if (fs.existsSync(tempFile)) {
-            const data = JSON.parse(fs.readFileSync(tempFile, 'utf8'));
+        // Wenn keine Datei existiert, hole neue Daten für DIESES spezifische Datum
+        console.log(`Keine Datei für ${date} gefunden, hole Daten von API...`);
+        try {
+            const fetchedData = await retry(() => fetchDataForDate(date, 'Alle'));
+            // Speichere die Daten für dieses spezifische Datum
+            saveDataForDate(date, fetchedData);
             return {
-                data: data.data || [],
-                courses: [...new Set((data.courses || []).filter(Boolean))]
+                data: fetchedData,
+                courses: [...new Set(fetchedData.map(item => item.kurs).filter(Boolean))]
             };
+        } catch (error) {
+            console.error(`Fehler beim Abrufen der Daten für ${date}:`, error);
+            return { data: [], courses: [] };
         }
-
-        return { data: [], courses: [] };
     } catch (error) {
         console.error(`Fehler beim Lesen der Daten für ${date}:`, error);
         return { data: [], courses: [] };

@@ -63,6 +63,39 @@ h2 {
     gap: var(--spacing);
 }
 
+.date-selection {
+    display: flex;
+    gap: var(--spacing);
+    align-items: center;
+}
+
+.date-selection label {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.date-selection input[type="date"] {
+    background: var(--button-background);
+    color: black;
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    min-width: 180px;
+    font-family: Arial, sans-serif;
+}
+
+.date-selection input[type="date"]:hover {
+    background: var(--button-hover);
+}
+
+.date-selection input[type="date"]:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
 button {
     background: var(--button-background);
     border: none;
