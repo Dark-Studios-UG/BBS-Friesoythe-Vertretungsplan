@@ -10,7 +10,14 @@
     --table-gradient-start: #ffffff;
     --table-gradient-end: #f8f9fa;
     --border-radius: 8px;
-    --spacing: 12px;
+    --spacing: 8px;
+}
+
+/* Desktop: Größeres Spacing */
+@media screen and (min-width: 769px) {
+    :root {
+        --spacing: 12px;
+    }
 }
 
 * {
@@ -20,42 +27,81 @@
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     background-color: var(--background-color);
     margin: 0;
-    padding: var(--spacing);
+    padding: 8px;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Desktop: Größerer Padding */
+@media screen and (min-width: 769px) {
+    body {
+        padding: 12px;
+    }
 }
 
 .container {
     max-width: 1200px;
     margin: auto;
     background: var(--card-background);
-    padding: var(--spacing);
+    padding: 12px;
     border-radius: var(--border-radius);
     box-shadow: none;
+}
+
+/* Desktop: Größerer Padding */
+@media screen and (min-width: 769px) {
+    .container {
+        padding: 16px;
+    }
 }
 
 h1 {
     text-align: center;
     color: var(--primary-color);
-    font-size: 1.8rem;
-    margin-bottom: var(--spacing);
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    font-weight: 600;
 }
 
 h2 {
     text-align: center;
     color: var(--primary-color);
-    font-size: 1.4rem;
-    margin-bottom: var(--spacing);
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+/* Desktop: Größere Überschriften */
+@media screen and (min-width: 769px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    h2 {
+        font-size: 1.4rem;
+    }
 }
 
 .controls {
     display: flex;
-    gap: var(--spacing);
-    margin-bottom: var(--spacing);
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: stretch;
+}
+
+/* Desktop: Horizontales Layout */
+@media screen and (min-width: 769px) {
+    .controls {
+        flex-direction: row;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 .button-group {
@@ -65,35 +111,77 @@ h2 {
 
 .date-selection {
     display: flex;
-    gap: var(--spacing);
+    flex-wrap: wrap;
+    gap: 8px;
     align-items: center;
+    width: 100%;
 }
 
 .date-selection label {
-    font-weight: bold;
+    font-weight: 600;
     color: var(--primary-color);
+    width: 100%;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* Desktop: Kompakteres Layout */
+@media screen and (min-width: 769px) {
+    .date-selection {
+        width: auto;
+        flex-wrap: nowrap;
+    }
+    
+    .date-selection label {
+        width: auto;
+        text-align: left;
+        font-size: 1rem;
+    }
 }
 
 /* Custom Date Picker */
 .custom-date-picker {
     position: relative;
     display: inline-block;
+    width: 100%;
+    order: 1;
+}
+
+/* Desktop: Auto-Breite */
+@media screen and (min-width: 769px) {
+    .custom-date-picker {
+        width: auto;
+        order: 0;
+    }
 }
 
 .date-picker-trigger {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     background: var(--button-background);
     color: var(--primary-color);
-    padding: 12px 18px;
+    padding: 14px 18px;
     border: none;
     border-radius: var(--border-radius);
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 180px;
+    width: 100%;
+    min-height: 48px;
     font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop: Feste Breite */
+@media screen and (min-width: 769px) {
+    .date-picker-trigger {
+        width: auto;
+        min-width: 180px;
+        padding: 12px 18px;
+        min-height: auto;
+    }
 }
 
 .date-picker-trigger:hover {
@@ -111,38 +199,63 @@ h2 {
 }
 
 .date-picker-dropdown {
-    position: absolute;
-    top: calc(100% + 8px);
+    position: fixed;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%) scale(0.95);
+    transform: translate(-50%, -50%) scale(0.95);
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 15px rgba(0, 0, 0, 0.1);
-    padding: 16px;
+    padding: 14px;
     z-index: 1000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 300px;
+    width: calc(100% - 24px);
+    max-width: 340px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Desktop: Absolute Position */
+@media screen and (min-width: 769px) {
+    .date-picker-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        transform: translateX(-50%) scale(0.95);
+        padding: 16px;
+        width: auto;
+        min-width: 300px;
+        max-width: none;
+        max-height: none;
+        overflow-y: visible;
+    }
 }
 
 .date-picker-dropdown.active {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Desktop: Korrekte Transform */
+@media screen and (min-width: 769px) {
+    .date-picker-dropdown.active {
+        transform: translateX(-50%) scale(1);
+    }
 }
 
 .date-picker-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
     border-bottom: 1px solid #eee;
 }
 
 .date-picker-header .current-month {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--primary-color);
     letter-spacing: 0.3px;
@@ -151,8 +264,8 @@ h2 {
 }
 
 .date-picker-header .nav-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     border: none;
     background: var(--button-background);
     border-radius: 50%;
@@ -164,6 +277,24 @@ h2 {
     padding: 0;
     min-width: unset;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop: Kleinere Buttons */
+@media screen and (min-width: 769px) {
+    .date-picker-header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+    
+    .date-picker-header .current-month {
+        font-size: 1rem;
+    }
+    
+    .date-picker-header .nav-btn {
+        width: 32px;
+        height: 32px;
+    }
 }
 
 .date-picker-header .nav-btn:hover {
@@ -178,18 +309,32 @@ h2 {
 .date-picker-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-bottom: 10px;
+    gap: 2px;
+    margin-bottom: 8px;
 }
 
 .date-picker-weekdays span {
     text-align: center;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: #888;
-    padding: 8px 0;
+    padding: 6px 0;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+}
+
+/* Desktop: Größerer Text */
+@media screen and (min-width: 769px) {
+    .date-picker-weekdays {
+        gap: 4px;
+        margin-bottom: 10px;
+    }
+    
+    .date-picker-weekdays span {
+        font-size: 0.75rem;
+        padding: 8px 0;
+        letter-spacing: 1px;
+    }
 }
 
 .date-picker-weekdays .weekend {
@@ -199,12 +344,13 @@ h2 {
 .date-picker-days {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 2px;
+    justify-items: center;
 }
 
 .date-picker-days .day {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     border: none;
     background: transparent;
     border-radius: 50%;
@@ -218,6 +364,20 @@ h2 {
     justify-content: center;
     padding: 0;
     min-width: unset;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop: Kleinere Buttons */
+@media screen and (min-width: 769px) {
+    .date-picker-days {
+        gap: 4px;
+        justify-items: stretch;
+    }
+    
+    .date-picker-days .day {
+        width: 40px;
+        height: 40px;
+    }
 }
 
 .date-picker-days .day:hover:not(.disabled):not(.weekend) {
@@ -270,8 +430,8 @@ h2 {
 }
 
 .date-picker-footer {
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid #eee;
     display: flex;
     justify-content: center;
@@ -281,13 +441,28 @@ h2 {
     background: transparent;
     border: 2px solid var(--primary-color);
     color: var(--primary-color);
-    padding: 8px 20px;
+    padding: 10px 20px;
     border-radius: var(--border-radius);
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     min-width: unset;
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop: Kleinere Buttons */
+@media screen and (min-width: 769px) {
+    .date-picker-footer {
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+    
+    .date-picker-footer .today-btn {
+        padding: 8px 20px;
+        min-height: auto;
+    }
 }
 
 .date-picker-footer .today-btn:hover {
@@ -315,103 +490,15 @@ h2 {
     visibility: visible;
 }
 
-/* Mobile Optimierungen für Date Picker */
-@media screen and (max-width: 768px) {
-    .date-selection {
-        flex-wrap: wrap;
-        justify-content: center;
-        width: 100%;
-    }
-
-    .custom-date-picker {
-        width: 100%;
-        order: 1;
-    }
-
-    .date-picker-trigger {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .date-picker-dropdown {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0.95);
-        width: calc(100% - 24px);
-        max-width: 340px;
-        max-height: 90vh;
-        overflow-y: auto;
-        padding: 14px;
-        min-width: unset;
-    }
-
-    .date-picker-dropdown.active {
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    .date-picker-header {
-        margin-bottom: 12px;
-        padding-bottom: 10px;
-    }
-
-    .date-picker-header .current-month {
-        font-size: 0.95rem;
-    }
-
-    .date-picker-header .nav-btn {
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
-        max-width: 48px;
-        padding: 0;
-    }
-
-    .date-picker-header .nav-btn svg {
-        width: 16px;
-        height: 16px;
-    }
-
-    .date-picker-weekdays {
-        gap: 2px;
-        margin-bottom: 8px;
-    }
-
-    .date-picker-weekdays span {
-        font-size: 0.7rem;
-        padding: 6px 0;
-    }
-
-    .date-picker-days {
-        gap: 2px;
-        justify-items: center;
-    }
-
-    .date-picker-days .day {
-        width: 38px;
-        height: 38px;
-        font-size: 0.85rem;
-    }
-
-    .date-picker-footer {
-        margin-top: 10px;
-        padding-top: 10px;
-    }
-
-    .date-picker-footer .today-btn {
-        padding: 8px 16px;
-        font-size: 0.8rem;
-    }
-
+/* Desktop: Anpassungen für größere Bildschirme */
+@media screen and (min-width: 769px) {
     .date-selection label {
-        width: 100%;
-        text-align: center;
-        margin-bottom: 8px;
+        margin-bottom: 0;
     }
 
     #bothDaysButton {
-        order: 2;
-        flex: 1;
+        order: 0;
+        flex: 0;
     }
 }
 
@@ -419,14 +506,36 @@ button {
     background: var(--button-background);
     border: none;
     color: black;
-    padding: 12px 24px;
+    padding: 14px 20px;
     text-align: center;
     text-decoration: none;
     font-size: 1rem;
     cursor: pointer;
     border-radius: var(--border-radius);
     transition: background-color 0.3s;
-    min-width: 120px;
+    min-height: 48px;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+#bothDaysButton {
+    order: 2;
+    flex: 1;
+}
+
+/* Desktop: Standard Button-Größen */
+@media screen and (min-width: 769px) {
+    button {
+        padding: 12px 24px;
+        min-width: 120px;
+        min-height: auto;
+    }
+    
+    #bothDaysButton {
+        order: 0;
+        flex: 0;
+    }
 }
 
 button:hover {
@@ -441,14 +550,15 @@ button.active {
 select {
     background: var(--button-background);
     color: black;
-    padding: 12px;
+    padding: 14px 40px 14px 14px;
     border: none;
     border-radius: var(--border-radius);
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s;
-    min-width: 200px;
-    max-width: 300px;
+    width: 100%;
+    min-height: 48px;
+    font-family: inherit;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -456,6 +566,18 @@ select {
     background-repeat: no-repeat;
     background-position: right 12px center;
     background-size: 20px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop: Feste Breite */
+@media screen and (min-width: 769px) {
+    select {
+        width: auto;
+        min-width: 200px;
+        max-width: 300px;
+        padding: 12px 40px 12px 12px;
+        min-height: auto;
+    }
 }
 
 select:hover {
@@ -466,36 +588,69 @@ select:hover {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin-top: var(--spacing);
+    margin-top: 12px;
     background: var(--card-background);
     border-radius: var(--border-radius);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+/* Visueller Scroll-Indikator für Mobile */
+.table-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to left, rgba(244, 244, 244, 0.9), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Desktop: Kein Scroll-Indikator */
+@media screen and (min-width: 769px) {
+    .table-container::before {
+        display: none;
+    }
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 600px;
+    min-width: 700px;
     background: linear-gradient(to bottom, 
         var(--table-gradient-start) 0%,
         var(--table-gradient-end) 100%);
-    table-layout: fixed;
+    table-layout: auto;
 }
 
 th, td {
-    padding: 12px;
+    padding: 10px 8px;
     text-align: left;
     border-bottom: 1px solid #ddd;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     background: transparent;
 }
 
+/* Desktop: Größere Schrift und Padding */
+@media screen and (min-width: 769px) {
+    table {
+        table-layout: fixed;
+    }
+    
+    th, td {
+        padding: 12px;
+        font-size: 0.9rem;
+    }
+}
+
 th {
     background: var(--header-background);
-    font-weight: bold;
+    font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 2;
@@ -503,6 +658,14 @@ th {
     cursor: pointer;
     user-select: none;
     transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Desktop: Fettere Schrift */
+@media screen and (min-width: 769px) {
+    th {
+        font-weight: bold;
+    }
 }
 
 th:hover {
@@ -519,14 +682,25 @@ th.sorted-desc::after {
     font-size: 0.8em;
 }
 
-/* Spaltenbreiten */
-th:nth-child(1), td:nth-child(1) { width: 15%; } /* Kurs */
-th:nth-child(2), td:nth-child(2) { width: 12%; } /* Tag */
-th:nth-child(3), td:nth-child(3) { width: 8%; }  /* Stunde */
-th:nth-child(4), td:nth-child(4) { width: 15%; } /* Raum */
-th:nth-child(5), td:nth-child(5) { width: 15%; } /* Lehrer */
-th:nth-child(6), td:nth-child(6) { width: 15%; } /* Typ */
-th:nth-child(7), td:nth-child(7) { width: 20%; } /* Notizen */
+/* Spaltenbreiten - Mobile First (flexible) */
+th:nth-child(1), td:nth-child(1) { min-width: 100px; } /* Kurs */
+th:nth-child(2), td:nth-child(2) { min-width: 90px; }  /* Tag */
+th:nth-child(3), td:nth-child(3) { min-width: 65px; }  /* Stunde */
+th:nth-child(4), td:nth-child(4) { min-width: 90px; }  /* Raum */
+th:nth-child(5), td:nth-child(5) { min-width: 90px; }  /* Lehrer */
+th:nth-child(6), td:nth-child(6) { min-width: 90px; }  /* Typ */
+th:nth-child(7), td:nth-child(7) { min-width: 120px; } /* Notizen */
+
+/* Desktop: Feste Breiten */
+@media screen and (min-width: 769px) {
+    th:nth-child(1), td:nth-child(1) { width: 15%; min-width: auto; } /* Kurs */
+    th:nth-child(2), td:nth-child(2) { width: 12%; min-width: auto; } /* Tag */
+    th:nth-child(3), td:nth-child(3) { width: 8%; min-width: auto; }  /* Stunde */
+    th:nth-child(4), td:nth-child(4) { width: 15%; min-width: auto; } /* Raum */
+    th:nth-child(5), td:nth-child(5) { width: 15%; min-width: auto; } /* Lehrer */
+    th:nth-child(6), td:nth-child(6) { width: 15%; min-width: auto; } /* Typ */
+    th:nth-child(7), td:nth-child(7) { width: 20%; min-width: auto; } /* Notizen */
+}
 
 /* Datumsspalte */
 .date-column {
@@ -562,114 +736,125 @@ tr:hover td {
     background: var(--table-row-hover);
 }
 
-/* Mobile Optimierungen */
-@media screen and (max-width: 768px) {
-    :root {
-        --spacing: 8px;
-    }
-
-    body {
-        padding: 8px;
-    }
-
-    .container {
-        padding: 12px;
-        margin: 0;
-        border-radius: var(--border-radius);
-    }
-
+/* Tablet-spezifische Anpassungen */
+@media screen and (min-width: 481px) and (max-width: 768px) {
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
     }
 
     h2 {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
     }
-
-    .controls {
-        flex-direction: column;
-    }
-
-    .button-group {
-        width: 100%;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    button {
-        flex: 1;
-        min-width: unset;
-        padding: 12px 8px;
-        font-size: 0.9rem;
-    }
-
-    select {
-        width: 100%;
-        max-width: unset;
-    }
-
+    
     th, td {
-        padding: 8px;
-        font-size: 0.85rem;
-    }
-
-    /* Horizontales Scrollen mit visuellem Indikator */
-    .table-container {
-        position: relative;
-    }
-
-    .table-container::after {
-        display: none;
-    }
-
-    /* Verbesserte Touch-Interaktion */
-    button, select {
-        min-height: 44px;
-    }
-
-    .date-column {
-        min-width: 100px;
+        padding: 10px;
+        font-size: 0.875rem;
     }
 }
 
-/* Landscape-Modus Optimierungen */
+/* Landscape-Modus Optimierungen für Mobile */
 @media screen and (max-width: 768px) and (orientation: landscape) {
     .controls {
         flex-direction: row;
+        flex-wrap: wrap;
     }
 
-    .button-group {
-        width: auto;
+    .date-selection {
+        flex: 1 1 auto;
+        min-width: 250px;
     }
 
     select {
-        width: auto;
-        min-width: 200px;
+        flex: 1 1 auto;
+        min-width: 180px;
+    }
+    
+    h1 {
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+    }
+    
+    h2 {
+        font-size: 1rem;
+        margin-bottom: 8px;
     }
 }
 
-/* Footer Styles */
+/* Footer Styles - Mobile First */
 .footer {
-    margin-top: 24px;
+    margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid #ddd;
 }
 
+.footer-credits {
+    text-align: center;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    opacity: 0.85;
+    font-weight: 500;
+}
+
+.footer-credits a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.3s;
+}
+
+.footer-credits a:hover,
+.footer-credits a:active {
+    opacity: 1;
+    text-decoration: underline;
+}
+
 .footer-links {
     display: flex;
-    justify-content: center;
-    gap: 24px;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
 }
 
 .footer-links a {
     color: var(--primary-color);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     opacity: 0.8;
     transition: opacity 0.3s;
+    padding: 8px 12px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.footer-links a:hover {
+.footer-links a:hover,
+.footer-links a:active {
     opacity: 1;
     text-decoration: underline;
+}
+
+/* Desktop: Horizontales Layout */
+@media screen and (min-width: 769px) {
+    .footer {
+        margin-top: 24px;
+    }
+    
+    .footer-credits {
+        font-size: 0.9rem;
+        margin-bottom: 18px;
+    }
+    
+    .footer-links {
+        flex-direction: row;
+        justify-content: center;
+        gap: 24px;
+    }
+    
+    .footer-links a {
+        font-size: 0.9rem;
+        padding: 0;
+        min-height: auto;
+    }
 }
