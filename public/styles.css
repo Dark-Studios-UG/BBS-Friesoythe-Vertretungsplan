@@ -360,13 +360,16 @@ h2 {
     }
 
     .date-picker-header .nav-btn {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        max-width: 48px;
+        padding: 0;
     }
 
     .date-picker-header .nav-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 
     .date-picker-weekdays {
