@@ -17,19 +17,11 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM = {
         date: document.getElementById('date'),
         datePicker: document.getElementById('datePicker'),
-        datePickerDisplay: document.getElementById('datePickerDisplay'),
-        datePickerDisplayText: document.getElementById('datePickerDisplayText'),
-        datePickerCalendar: document.getElementById('datePickerCalendar'),
-        calendarMonthLabel: document.getElementById('calendarMonthLabel'),
-        calendarDays: document.getElementById('calendarDays'),
-        calendarPrev: document.getElementById('calendarPrev'),
-        calendarNext: document.getElementById('calendarNext'),
         bothDaysButton: document.getElementById('bothDaysButton'),
         courseFilter: document.getElementById('courseFilter'),
         dataBody: document.getElementById('data-body')
     };
 
-    CustomDatePicker.init();
     // Anwendung starten
     EventHandler.init();
 });
@@ -135,162 +127,6 @@ class DateManager {
         return {
             dates: dates
         };
-    }
-}
-
-// Custom Date Picker
-class CustomDatePicker {
-    static init() {
-        this.hiddenInput = DOM.datePicker;
-        this.displayButton = DOM.datePickerDisplay;
-        this.displayText = DOM.datePickerDisplayText;
-        this.calendar = DOM.datePickerCalendar;
-        this.monthLabel = DOM.calendarMonthLabel;
-        this.daysContainer = DOM.calendarDays;
-        this.prevButton = DOM.calendarPrev;
-        this.nextButton = DOM.calendarNext;
-        this.initialized = !!(this.hiddenInput && this.displayButton && this.calendar);
-        
-        if (!this.initialized) {
-            console.warn('CustomDatePicker konnte nicht initialisiert werden - Elemente fehlen.');
-            return;
-        }
-
-        const initialDate = DateManager.dateToString(DateManager.getCurrentDate());
-        this.setDate(initialDate, false);
-        
-        this.displayButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleCalendar();
-        });
-        
-        this.prevButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.changeMonth(-1);
-        });
-        
-        this.nextButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.changeMonth(1);
-        });
-        
-        this.calendar.addEventListener('click', (e) => e.stopPropagation());
-        document.addEventListener('click', () => this.closeCalendar());
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                this.closeCalendar();
-            }
-        });
-        
-        this.renderCalendar();
-    }
-    
-    static toggleCalendar() {
-        if (this.calendar.classList.contains('hidden')) {
-            this.calendar.classList.remove('hidden');
-        } else {
-            this.calendar.classList.add('hidden');
-        }
-    }
-    
-    static closeCalendar() {
-        this.calendar.classList.add('hidden');
-    }
-    
-    static changeMonth(delta) {
-        this.currentMonth += delta;
-        if (this.currentMonth < 0) {
-            this.currentMonth = 11;
-            this.currentYear -= 1;
-        } else if (this.currentMonth > 11) {
-            this.currentMonth = 0;
-            this.currentYear += 1;
-        }
-        this.renderCalendar();
-    }
-    
-    static renderCalendar() {
-        if (!this.initialized) return;
-        
-        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-        const startWeekday = (firstDay.getDay() + 6) % 7; // Montag = 0
-        
-        this.monthLabel.textContent = firstDay.toLocaleString('de-DE', {
-            month: 'long',
-            year: 'numeric'
-        });
-        
-        this.daysContainer.innerHTML = '';
-        
-        // Platzhalter für Tage vor dem ersten
-        for (let i = 0; i < startWeekday; i++) {
-            const placeholder = document.createElement('span');
-            placeholder.classList.add('calendar-day', 'placeholder');
-            this.daysContainer.appendChild(placeholder);
-        }
-        
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(this.currentYear, this.currentMonth, day);
-            const dateStr = DateManager.dateToString(date);
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.textContent = day.toString();
-            button.classList.add('calendar-day');
-            
-            if (DateManager.isWeekend(date)) {
-                button.classList.add('disabled');
-                button.disabled = true;
-            }
-            
-            if (dateStr === this.selectedDate) {
-                button.classList.add('selected');
-            }
-            
-            button.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!button.disabled) {
-                    this.selectDate(dateStr);
-                }
-            });
-            
-            this.daysContainer.appendChild(button);
-        }
-    }
-    
-    static selectDate(dateStr) {
-        this.setDate(dateStr, true);
-        this.closeCalendar();
-    }
-    
-    static setDate(dateStr, triggerChange = true) {
-        if (!this.initialized) return;
-        
-        this.selectedDate = dateStr;
-        this.hiddenInput.value = dateStr;
-        this.updateDisplayText(dateStr);
-        
-        const dateObj = DateManager.stringToDate(dateStr);
-        this.currentYear = dateObj.getFullYear();
-        this.currentMonth = dateObj.getMonth();
-        
-        this.renderCalendar();
-        
-        if (triggerChange) {
-            const changeEvent = new Event('change', { bubbles: true });
-            this.hiddenInput.dispatchEvent(changeEvent);
-        }
-    }
-    
-    static updateDisplayText(dateStr) {
-        if (!this.displayText) return;
-        const dateObj = DateManager.stringToDate(dateStr);
-        this.displayText.textContent = DateManager.formatDate(dateObj);
-    }
-    
-    static resetToToday() {
-        const today = DateManager.dateToString(DateManager.getCurrentDate());
-        this.setDate(today, false);
     }
 }
 
@@ -422,11 +258,12 @@ class UIManager {
     }
 
     static updateDatePicker(date) {
-        if (!CustomDatePicker.initialized) return;
         if (date) {
-            CustomDatePicker.setDate(date, false);
+            DOM.datePicker.value = date;
         } else {
-            CustomDatePicker.resetToToday();
+            // Setze auf heutiges Datum (berücksichtigt 17 Uhr Regel)
+            const today = DateManager.getCurrentDate();
+            DOM.datePicker.value = DateManager.dateToString(today);
         }
     }
 
