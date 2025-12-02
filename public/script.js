@@ -17,14 +17,219 @@ document.addEventListener('DOMContentLoaded', () => {
     DOM = {
         date: document.getElementById('date'),
         datePicker: document.getElementById('datePicker'),
+        datePickerTrigger: document.getElementById('datePickerTrigger'),
+        datePickerDropdown: document.getElementById('datePickerDropdown'),
+        datePickerDays: document.getElementById('datePickerDays'),
+        currentMonth: document.getElementById('currentMonth'),
+        prevMonth: document.getElementById('prevMonth'),
+        nextMonth: document.getElementById('nextMonth'),
+        todayBtn: document.getElementById('todayBtn'),
+        selectedDateText: document.getElementById('selectedDateText'),
         bothDaysButton: document.getElementById('bothDaysButton'),
         courseFilter: document.getElementById('courseFilter'),
         dataBody: document.getElementById('data-body')
     };
 
+    // Custom Date Picker initialisieren
+    CustomDatePicker.init();
+    
     // Anwendung starten
     EventHandler.init();
 });
+
+// Custom Date Picker Klasse
+class CustomDatePicker {
+    static currentDate = new Date();
+    static selectedDate = null;
+    static isOpen = false;
+
+    static init() {
+        // Trigger Button
+        DOM.datePickerTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggle();
+        });
+
+        // Navigation Buttons
+        DOM.prevMonth.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.changeMonth(-1);
+        });
+
+        DOM.nextMonth.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.changeMonth(1);
+        });
+
+        // Heute Button
+        DOM.todayBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.selectToday();
+        });
+
+        // Schließen bei Klick außerhalb
+        document.addEventListener('click', (e) => {
+            if (!DOM.datePickerDropdown.contains(e.target) && 
+                !DOM.datePickerTrigger.contains(e.target)) {
+                this.close();
+            }
+        });
+
+        // ESC zum Schließen
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.close();
+            }
+        });
+
+        // Initial rendern
+        this.render();
+    }
+
+    static toggle() {
+        if (this.isOpen) {
+            this.close();
+        } else {
+            this.open();
+        }
+    }
+
+    static open() {
+        this.isOpen = true;
+        DOM.datePickerDropdown.classList.add('active');
+        this.render();
+    }
+
+    static close() {
+        this.isOpen = false;
+        DOM.datePickerDropdown.classList.remove('active');
+    }
+
+    static changeMonth(delta) {
+        this.currentDate.setMonth(this.currentDate.getMonth() + delta);
+        this.render();
+    }
+
+    static render() {
+        const year = this.currentDate.getFullYear();
+        const month = this.currentDate.getMonth();
+
+        // Monat/Jahr anzeigen
+        const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 
+                           'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+        DOM.currentMonth.textContent = `${monthNames[month]} ${year}`;
+
+        // Tage generieren
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const startDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Mo = 0
+        const daysInMonth = lastDay.getDate();
+
+        // Vorheriger Monat
+        const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+        let html = '';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Tage vom vorherigen Monat
+        for (let i = startDay - 1; i >= 0; i--) {
+            const day = prevMonthLastDay - i;
+            const date = new Date(year, month - 1, day);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            html += `<button type="button" class="day other-month ${isWeekend ? 'weekend' : ''}" 
+                     data-date="${this.formatDate(date)}" ${isWeekend ? 'disabled' : ''}>${day}</button>`;
+        }
+
+        // Tage des aktuellen Monats
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(year, month, day);
+            const isToday = date.getTime() === today.getTime();
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            const isSelected = this.selectedDate && 
+                              this.formatDate(date) === this.formatDate(this.selectedDate);
+
+            let classes = 'day';
+            if (isToday) classes += ' today';
+            if (isWeekend) classes += ' weekend';
+            if (isSelected) classes += ' selected';
+
+            html += `<button type="button" class="${classes}" 
+                     data-date="${this.formatDate(date)}" ${isWeekend ? 'disabled' : ''}>${day}</button>`;
+        }
+
+        // Tage vom nächsten Monat
+        const totalCells = Math.ceil((startDay + daysInMonth) / 7) * 7;
+        const remainingCells = totalCells - (startDay + daysInMonth);
+        for (let day = 1; day <= remainingCells; day++) {
+            const date = new Date(year, month + 1, day);
+            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+            html += `<button type="button" class="day other-month ${isWeekend ? 'weekend' : ''}" 
+                     data-date="${this.formatDate(date)}" ${isWeekend ? 'disabled' : ''}>${day}</button>`;
+        }
+
+        DOM.datePickerDays.innerHTML = html;
+
+        // Event Listener für Tage
+        DOM.datePickerDays.querySelectorAll('.day:not(.weekend)').forEach(dayBtn => {
+            dayBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const dateStr = dayBtn.dataset.date;
+                this.selectDate(dateStr);
+            });
+        });
+    }
+
+    static selectDate(dateStr) {
+        this.selectedDate = new Date(dateStr + 'T00:00:00');
+        DOM.datePicker.value = dateStr;
+        
+        // Anzeige aktualisieren
+        const options = { weekday: 'short', day: '2-digit', month: '2-digit' };
+        DOM.selectedDateText.textContent = this.selectedDate.toLocaleDateString('de-DE', options);
+        
+        this.close();
+        this.render();
+
+        // Event auslösen
+        DOM.datePicker.dispatchEvent(new Event('change'));
+    }
+
+    static selectToday() {
+        const today = DateManager.getCurrentDate();
+        const dateStr = DateManager.dateToString(today);
+        this.selectDate(dateStr);
+    }
+
+    static formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    static setDate(dateStr) {
+        if (dateStr) {
+            this.selectedDate = new Date(dateStr + 'T00:00:00');
+            this.currentDate = new Date(this.selectedDate);
+            const options = { weekday: 'short', day: '2-digit', month: '2-digit' };
+            DOM.selectedDateText.textContent = this.selectedDate.toLocaleDateString('de-DE', options);
+        } else {
+            this.selectedDate = null;
+            DOM.selectedDateText.textContent = 'Datum wählen';
+        }
+        DOM.datePicker.value = dateStr || '';
+        this.render();
+    }
+
+    static reset() {
+        this.selectedDate = null;
+        this.currentDate = new Date();
+        DOM.selectedDateText.textContent = 'Datum wählen';
+        DOM.datePicker.value = '';
+        this.render();
+    }
+}
 
 // Datum-Management
 class DateManager {
@@ -259,11 +464,10 @@ class UIManager {
 
     static updateDatePicker(date) {
         if (date) {
-            DOM.datePicker.value = date;
+            CustomDatePicker.setDate(date);
         } else {
-            // Setze auf heutiges Datum (berücksichtigt 17 Uhr Regel)
-            const today = DateManager.getCurrentDate();
-            DOM.datePicker.value = DateManager.dateToString(today);
+            // Reset auf "Datum wählen"
+            CustomDatePicker.reset();
         }
     }
 

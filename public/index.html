@@ -15,8 +15,41 @@
         <h2 id="date"></h2>
         <div class="controls">
             <div class="date-selection">
-                <label for="datePicker">Datum:</label>
-                <input type="date" id="datePicker">
+                <label>Datum:</label>
+                <div class="custom-date-picker">
+                    <button type="button" class="date-picker-trigger" id="datePickerTrigger">
+                        <span id="selectedDateText">Datum wählen</span>
+                        <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </button>
+                    <div class="date-picker-dropdown" id="datePickerDropdown">
+                        <div class="date-picker-header">
+                            <button type="button" class="nav-btn" id="prevMonth">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <span class="current-month" id="currentMonth"></span>
+                            <button type="button" class="nav-btn" id="nextMonth">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="date-picker-weekdays">
+                            <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span class="weekend">Sa</span><span class="weekend">So</span>
+                        </div>
+                        <div class="date-picker-days" id="datePickerDays"></div>
+                        <div class="date-picker-footer">
+                            <button type="button" class="today-btn" id="todayBtn">Heute</button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="datePicker">
+                </div>
                 <button id="bothDaysButton">4 Tage</button>
             </div>
             <select id="courseFilter">

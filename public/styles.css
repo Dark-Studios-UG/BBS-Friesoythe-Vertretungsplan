@@ -74,26 +74,298 @@ h2 {
     color: var(--primary-color);
 }
 
-.date-selection input[type="date"] {
-    background: var(--button-background);
-    color: black;
-    padding: 12px;
+/* Custom Date Picker */
+.custom-date-picker {
+    position: relative;
+    display: inline-block;
+}
+
+.date-picker-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 18px;
     border: none;
     border-radius: var(--border-radius);
     font-size: 1rem;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
     min-width: 180px;
-    font-family: Arial, sans-serif;
+    font-family: inherit;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.date-selection input[type="date"]:hover {
-    background: var(--button-hover);
+.date-picker-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
 }
 
-.date-selection input[type="date"]:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
+.date-picker-trigger:active {
+    transform: translateY(0);
+}
+
+.date-picker-trigger .calendar-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.date-picker-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) scale(0.95);
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 8px 25px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 320px;
+}
+
+.date-picker-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) scale(1);
+}
+
+.date-picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.date-picker-header .current-month {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    letter-spacing: 0.5px;
+}
+
+.date-picker-header .nav-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #f5f5f5;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    min-width: unset;
+}
+
+.date-picker-header .nav-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: scale(1.1);
+}
+
+.date-picker-header .nav-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.date-picker-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.date-picker-weekdays span {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    padding: 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.date-picker-weekdays .weekend {
+    color: #ccc;
+}
+
+.date-picker-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.date-picker-days .day {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    min-width: unset;
+}
+
+.date-picker-days .day:hover:not(.disabled):not(.weekend) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: scale(1.1);
+}
+
+.date-picker-days .day.today {
+    background: #f0f0f0;
+    font-weight: 700;
+    position: relative;
+}
+
+.date-picker-days .day.today::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+}
+
+.date-picker-days .day.selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.date-picker-days .day.other-month {
+    color: #ccc;
+}
+
+.date-picker-days .day.weekend {
+    color: #bbb;
+    cursor: not-allowed;
+}
+
+.date-picker-days .day.weekend:hover {
+    background: transparent;
+    transform: none;
+    color: #bbb;
+}
+
+.date-picker-days .day.disabled {
+    color: #ddd;
+    cursor: not-allowed;
+}
+
+.date-picker-footer {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: center;
+}
+
+.date-picker-footer .today-btn {
+    background: transparent;
+    border: 2px solid #667eea;
+    color: #667eea;
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: unset;
+}
+
+.date-picker-footer .today-btn:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+/* Overlay für Mobile */
+.date-picker-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.date-picker-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Mobile Optimierungen für Date Picker */
+@media screen and (max-width: 768px) {
+    .date-selection {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .custom-date-picker {
+        width: 100%;
+        order: 1;
+    }
+
+    .date-picker-trigger {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .date-picker-dropdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        width: calc(100% - 32px);
+        max-width: 360px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .date-picker-dropdown.active {
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .date-picker-days .day {
+        width: 36px;
+        height: 36px;
+        font-size: 0.85rem;
+    }
+
+    .date-selection label {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 8px;
+    }
+
+    #bothDaysButton {
+        order: 2;
+        flex: 1;
+    }
 }
 
 button {
