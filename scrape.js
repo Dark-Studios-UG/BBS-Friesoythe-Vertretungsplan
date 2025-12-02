@@ -1,8 +1,10 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const axios = require('axios');
+const cheerio = require('cheerio');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { URLSearchParams } = require('url');
 
 // Konstanten
 const PORT = process.env.PORT || 3000;
@@ -10,9 +12,11 @@ const BACKUP_HOUR = 3; // Uhrzeit für tägliches Backup
 const UPDATE_INTERVAL = 600000; // 10 Minuten in Millisekunden
 const SWITCH_HOUR = 17; // Ab dieser Uhrzeit wird auf den nächsten Tag umgeschaltet
 
-const URLS = {
-    TODAY: 'https://kephiso.webuntis.com/WebUntis/monitor?school=BBS%20Friesoythe&monitorType=subst&format=Vertretung%20heute',
-    TOMORROW: 'https://kephiso.webuntis.com/WebUntis/monitor?school=BBS%20Friesoythe&monitorType=subst&format=Vertretung%20morgen'
+const API_URL = 'https://vertretung.bababue.com/query';
+const API_HEADERS = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'User-Agent': 'curl/8.5.0',
+    Accept: '*/*'
 };
 
 // Express App Setup
@@ -81,153 +85,177 @@ const getCorrectDate = () => {
     return germanTime.toISOString().split('T')[0];
 };
 
-// Add retry logic helper function
+// Retry-Logik für API-Anfragen
 const retry = async (fn, retries = 3, delay = 5000) => {
     for (let i = 0; i < retries; i++) {
         try {
             return await fn();
         } catch (error) {
             if (i === retries - 1) throw error;
-            console.log(`Attempt ${i + 1} failed, retrying in ${delay/1000} seconds...`);
+            console.log(`Versuch ${i + 1} fehlgeschlagen, wiederhole in ${delay/1000} Sekunden...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 };
 
-// Add URL validation function
-const validateUrl = async (page, url) => {
+/**
+ * Holt die Vertretungsdaten von der neuen API
+ * @param {string} date - Datum im Format YYYY-MM-DD
+ * @param {string} kurs - Kursname oder 'Alle' für alle Kurse
+ * @returns {Promise<Array>} Array von Vertretungseinträgen
+ */
+/**
+ * Erstellt den Form-Body für die POST-Anfrage (exakt wie curl)
+ * @param {string} date - Datum im Format YYYY-MM-DD
+ * @param {string} kurs - Kursname oder 'Alle'
+ * @returns {string} URL-encoded Form-String
+ */
+const buildFormBody = (date, kurs) => {
+    // Exakt wie im curl-Befehl: 'date=2025-12-08&kurs=Alle'
+    // 'Alle' muss nicht encoded werden, da es kein Sonderzeichen enthält
+    return `date=${date}&kurs=${kurs}`;
+};
+
+/**
+ * Holt die Vertretungsdaten von der neuen API
+ * @param {string} date - Datum im Format YYYY-MM-DD
+ * @param {string} kurs - Kursname oder 'Alle' für alle Kurse
+ * @returns {Promise<Array>} Array von Vertretungseinträgen
+ */
+const fetchDataForDate = async (date, kurs = 'Alle') => {
     try {
-        console.log(`Attempting to access ${url}...`);
-        const response = await page.goto(url, { 
-            waitUntil: ['networkidle2', 'domcontentloaded'],
-            timeout: 60000  // Increased timeout to 60 seconds
-        });
+        console.log(`Hole Daten für ${date}, Kurs: ${kurs}`);
         
-        if (!response.ok()) {
-            throw new Error(`HTTP ${response.status()} on ${url}`);
+        // Exakt wie curl senden: direkter String, keine URLSearchParams
+        const formData = buildFormBody(date, kurs);
+        
+        const response = await axios.post(
+            API_URL,
+            formData,
+            {
+                headers: API_HEADERS,
+                timeout: 30000, // 30 Sekunden Timeout
+                maxRedirects: 0, // Keine Redirects
+                validateStatus: (status) => status === 200 // Nur 200 akzeptieren
+            }
+        );
+        
+        // Prüfe, ob wir HTML zurückbekommen haben
+        if (typeof response.data !== 'string' || !response.data.includes('<tbody')) {
+            console.warn(`Unerwartete Antwort für ${date}:`, response.data.substring(0, 200));
         }
-
-        // Check if we got redirected to a login page or error page
-        const currentUrl = page.url();
-        if (currentUrl.includes('login') || currentUrl.includes('error')) {
-            throw new Error(`Redirected to ${currentUrl}`);
-        }
-
-        console.log(`Successfully accessed ${url}`);
-        return true;
+        
+        const data = extractTableData(response.data);
+        console.log(`Gefunden: ${data.length} Einträge für ${date}`);
+        return data;
     } catch (error) {
-        console.error(`Failed to access ${url}:`, error);
-        return false;
+        // Detaillierte Fehlerbehandlung
+        if (error.response) {
+            console.error(`HTTP ${error.response.status} Fehler für ${date}:`, error.response.statusText);
+            console.error(`Response-Header:`, error.response.headers);
+            if (error.response.data) {
+                console.error(`Response-Body (erste 500 Zeichen):`, String(error.response.data).substring(0, 500));
+            }
+        } else if (error.request) {
+            console.error(`Keine Antwort vom Server für ${date}:`, error.message);
+        } else {
+            console.error(`Fehler beim Abrufen der Daten für ${date}:`, error.message);
+        }
+        throw error;
     }
 };
 
 /**
- * Scrapt die Vertretungsdaten von WebUntis
+ * Scrapt die Vertretungsdaten von der neuen API
  * @returns {Promise<{dataToday: Array, dataTomorrow: Array}>}
  */
 const scrapeData = async () => {
-    console.log("Starting scraping process...");
-    let browser;
-    try {
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+    console.log("Starte Datenabruf...");
+    const currentDate = getCorrectDate();
+    const tomorrowDate = new Date(currentDate);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    
+    // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
+    const nextDate = isWeekend(tomorrowDate) 
+        ? getNextSchoolDay(tomorrowDate) 
+        : tomorrowDate;
+    
+    const tomorrowDateStr = nextDate.toISOString().split('T')[0];
 
-        // Erstelle zwei separate Pages für parallele Verarbeitung
-        const [pageToday, pageTomorrow] = await Promise.all([
-            browser.newPage(),
-            browser.newPage()
-        ]);
-
-        // Konfiguriere beide Pages
-        for (const page of [pageToday, pageTomorrow]) {
-            page.setDefaultTimeout(60000); // 60 seconds timeout
-            await page.setViewport({ width: 1920, height: 1080 });
-            await page.setRequestInterception(true);
-            
-            // Optimize page loading
-            page.on('request', (request) => {
-                if (['image', 'stylesheet', 'font'].includes(request.resourceType())) {
-                    request.abort();
-                } else {
-                    request.continue();
-                }
-            });
+    const fetchWithFallback = async (label, date) => {
+        try {
+            return await retry(() => fetchDataForDate(date, 'Alle'));
+        } catch (error) {
+            console.error(`Fehler beim Abrufen der ${label} Daten (${date}):`, error.message);
+            return [];
         }
+    };
+    
+    // Paralleler Abruf für heute und morgen mit Fallback
+    console.log("Starte parallelen Datenabruf für heute und morgen...");
+    const [dataToday, dataTomorrow] = await Promise.all([
+        fetchWithFallback('heutigen', currentDate),
+        fetchWithFallback('morgigen', tomorrowDateStr)
+    ]);
 
-        // Parallel scraping für heute und morgen
-        console.log("Starting parallel scraping for today and tomorrow...");
-        const [dataToday, dataTomorrow] = await Promise.all([
-            // Scrape heute
-            retry(async () => {
-                console.log("Scraping today's data...");
-                if (!await validateUrl(pageToday, URLS.TODAY)) {
-                    throw new Error("Failed to access today's URL");
-                }
-                const data = await extractTableData(pageToday);
-                console.log(`Found ${data.length} entries for today`);
-                return data;
-            }),
-            // Scrape morgen
-            retry(async () => {
-                console.log("Scraping tomorrow's data...");
-                if (!await validateUrl(pageTomorrow, URLS.TOMORROW)) {
-                    throw new Error("Failed to access tomorrow's URL");
-                }
-                const data = await extractTableData(pageTomorrow);
-                console.log(`Found ${data.length} entries for tomorrow`);
-                return data;
-            })
-        ]);
-
-        return { dataToday, dataTomorrow };
-    } catch (error) {
-        console.error("Error during scraping:", error);
-        throw error;
-    } finally {
-        if (browser) {
-            await browser.close();
-        }
-    }
+    return { dataToday, dataTomorrow };
 };
 
 /**
- * Extrahiert Tabellendaten von einer WebUntis-Seite
- * @param {Page} page - Puppeteer Page Objekt
- * @returns {Promise<Array>}
+ * Extrahiert Tabellendaten aus dem HTML-Response
+ * @param {string} html - HTML-String der Antwort
+ * @returns {Array} Array von Vertretungseinträgen
  */
-const extractTableData = async (page) => {
+const extractTableData = (html) => {
     try {
-        // Wait for the table to be present
-        await page.waitForSelector('table tbody tr', { timeout: 30000 });
+        // Das HTML enthält nur thead und tbody ohne table-Tag
+        // Wir müssen es in ein table-Tag wrappen, damit Cheerio es richtig parsen kann
+        const wrappedHtml = `<table>${html}</table>`;
+        const $ = cheerio.load(wrappedHtml);
+        const rows = $('tbody tr');
         
-        return page.evaluate(() => {
-            const rows = Array.from(document.querySelectorAll('table tbody tr'));
-            if (!rows.length) {
-                console.log("No rows found in table");
-                return [];
+        if (rows.length === 0) {
+            console.log("Keine Zeilen in der Tabelle gefunden");
+            return [];
+        }
+
+        const data = [];
+        rows.each((index, row) => {
+            const $row = $(row);
+            
+            // Kurs ist in einem th-Element mit scope="row"
+            const kurs = $row.find('th[scope="row"]').text().trim();
+            
+            // Andere Spalten sind in td-Elementen
+            const tds = $row.find('td');
+            if (tds.length < 5) {
+                console.log(`Zeile ${index + 1} hat unzureichende Zellen: ${tds.length}`);
+                return;
             }
 
-            return rows.map(row => {
-                const cells = Array.from(row.querySelectorAll('td'));
-                if (cells.length < 7) {
-                    console.log("Row has insufficient cells:", cells.length);
-                    return null;
-                }
+            // Spaltenreihenfolge: Stunde, Raum, Lehrer, Typ, Notizen
+            const stunde = $(tds[0]).text().trim();
+            const raum = $(tds[1]).text().trim();
+            const lehrer = $(tds[2]).text().trim();
+            const typ = $(tds[3]).text().trim();
+            const notizen = $(tds[4]).text().trim();
 
-                return {
-                    kurs: cells[0]?.innerText?.trim() || '',
-                    stunde: cells[2]?.innerText?.trim() || '',
-                    raum: cells[3]?.innerText?.trim() || '',
-                    lehrer: cells[4]?.innerText?.trim() || '',
-                    typ: cells[5]?.innerText?.trim() || '',
-                    notizen: cells[6]?.innerText?.trim() || '',
-                };
-            }).filter(Boolean); // Remove any null entries
+            // Nur Einträge mit Kurs hinzufügen
+            if (kurs) {
+                data.push({
+                    kurs,
+                    stunde,
+                    raum,
+                    lehrer,
+                    typ,
+                    notizen
+                });
+            }
         });
+
+        return data;
     } catch (error) {
-        console.error("Error extracting table data:", error);
+        console.error("Fehler beim Extrahieren der Tabellendaten:", error);
         return [];
     }
 };

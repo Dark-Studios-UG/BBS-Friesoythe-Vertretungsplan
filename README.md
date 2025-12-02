@@ -17,8 +17,8 @@ Ein moderner und benutzerfreundlicher Vertretungsplan für die BBS Friesoythe. D
 
 - Frontend: HTML5, CSS3, Vanilla JavaScript
 - Backend: Node.js, Express
-- Web Scraping: Puppeteer
-- Datenverarbeitung: Cheerio
+- API-Integration: Axios für HTTP-Requests
+- HTML-Parsing: Cheerio
 
 ## Installation
 
@@ -30,7 +30,7 @@ cd BBS-Friesoythe-Vertretungsplan
 
 2. Dependencies installieren:
 ```bash
-npm install express puppeteer cors path fs
+npm install
 ```
 
 3. Server starten:
