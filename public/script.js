@@ -250,27 +250,30 @@ class DateManager {
     }
 
     static getCurrentDate() {
-        const today = new Date();
-        if (today.getHours() >= this.SWITCH_HOUR) {
+        // Verwende deutsche Zeitzone (Europe/Berlin)
+        const now = new Date();
+        const germanTime = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+        
+        if (germanTime.getHours() >= this.SWITCH_HOUR) {
             // Wenn aktuelle Zeit nach SWITCH_HOUR ist und heute Wochenende, zum nächsten Schultag springen
-            if (this.isWeekend(today)) {
-                return this.getNextSchoolDay(today);
+            if (this.isWeekend(germanTime)) {
+                return this.getNextSchoolDay(germanTime);
             }
             
-            const tomorrow = new Date(today);
+            const tomorrow = new Date(germanTime);
             tomorrow.setDate(tomorrow.getDate() + 1);
             
             // Wenn morgen Wochenende ist, zum nächsten Schultag springen
             if (this.isWeekend(tomorrow)) {
-                return this.getNextSchoolDay(today);
+                return this.getNextSchoolDay(germanTime);
             }
             
             return tomorrow;
-        } else if (this.isWeekend(today)) {
+        } else if (this.isWeekend(germanTime)) {
             // Wenn heute Wochenende ist, zum nächsten Schultag springen
-            return this.getNextSchoolDay(today);
+            return this.getNextSchoolDay(germanTime);
         }
-        return today;
+        return germanTime;
     }
 
     static getTomorrowDate() {
