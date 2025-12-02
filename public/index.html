@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Vertretungsplan der BBS Friesoythe">
     <meta name="theme-color" content="#f4f4f4">
-    <link rel="icon" type="image/png" href="das.webp">
+    <link rel="icon" type="image/png" href="favicon.png">
     <title>Vertretungsplan</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -16,7 +16,30 @@
         <div class="controls">
             <div class="date-selection">
                 <label for="datePicker">Datum:</label>
-                <input type="date" id="datePicker">
+                <div class="custom-date-picker-wrapper">
+                    <button type="button" id="datePickerDisplay" class="custom-date-input">
+                        <span id="datePickerDisplayText">Datum auswählen</span>
+                        <span class="custom-date-icon">▾</span>
+                    </button>
+                    <div id="datePickerCalendar" class="custom-date-calendar hidden">
+                        <div class="calendar-header">
+                            <button type="button" id="calendarPrev" aria-label="Vorheriger Monat">‹</button>
+                            <span id="calendarMonthLabel"></span>
+                            <button type="button" id="calendarNext" aria-label="Nächster Monat">›</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <span>Mo</span>
+                            <span>Di</span>
+                            <span>Mi</span>
+                            <span>Do</span>
+                            <span>Fr</span>
+                            <span>Sa</span>
+                            <span>So</span>
+                        </div>
+                        <div class="calendar-days" id="calendarDays"></div>
+                    </div>
+                    <input type="hidden" id="datePicker">
+                </div>
                 <button id="bothDaysButton">4 Tage</button>
             </div>
             <select id="courseFilter">
@@ -43,8 +66,8 @@
             <div class="footer-links">
                 <a href="https://github.com/Dark-Studios-UG/BBS-Friesoythe-Vertretungsplan" target="_blank" rel="noopener">GitHub</a>
                 <a href="https://forms.gle/SdA2HfNGgqiHhsoa9" target="_blank" rel="noopener">Verbesserungsvorschläge</a>
-                <a href="https://darkstudios.de/sections/imprint.html" target="_blank" rel="noopener">Impressum</a>
-                <a href="https://darkstudios.de/sections/privacy.html" target="_blank" rel="noopener">Datenschutz</a>
+                <a href="https://deeken.digital/impressum" target="_blank" rel="noopener">Impressum</a>
+                <a href="https://deeken.digital/datenschutz" target="_blank" rel="noopener">Datenschutz</a>
             </div>
         </footer>
     </div>
