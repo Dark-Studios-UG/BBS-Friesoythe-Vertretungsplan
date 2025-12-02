@@ -55,6 +55,20 @@ const getNextSchoolDay = (date) => {
 };
 
 /**
+ * Ermittelt das vorherige Schultag-Datum
+ * @param {Date} date - Startdatum
+ * @returns {Date} Vorheriger Schultag
+ */
+const getPreviousSchoolDay = (date) => {
+    const prevDay = new Date(date);
+    prevDay.setDate(prevDay.getDate() - 1);
+    while (isWeekend(prevDay)) {
+        prevDay.setDate(prevDay.getDate() - 1);
+    }
+    return prevDay;
+};
+
+/**
  * Ermittelt die nächsten N Schultage ab einem Startdatum
  * @param {Date} startDate - Startdatum
  * @param {number} count - Anzahl der Schultage
@@ -73,6 +87,33 @@ const getNextSchoolDays = (startDate, count = 4) => {
         const dateStr = currentDate.toISOString().split('T')[0];
         dates.push(dateStr);
         currentDate = getNextSchoolDay(currentDate);
+    }
+    
+    return dates;
+};
+
+/**
+ * Ermittelt die vergangenen N Schultage vor einem Startdatum
+ * @param {Date} startDate - Startdatum
+ * @param {number} count - Anzahl der Schultage
+ * @returns {Array<string>} Array von Datumsstrings im Format YYYY-MM-DD
+ */
+const getPreviousSchoolDays = (startDate, count = 3) => {
+    const dates = [];
+    let currentDate = new Date(startDate);
+    
+    // Stelle sicher, dass wir mit einem Schultag starten
+    if (isWeekend(currentDate)) {
+        currentDate = getPreviousSchoolDay(currentDate);
+    }
+    
+    // Gehe zum vorherigen Schultag
+    currentDate = getPreviousSchoolDay(currentDate);
+    
+    while (dates.length < count) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        dates.unshift(dateStr); // Am Anfang einfügen, damit die ältesten zuerst kommen
+        currentDate = getPreviousSchoolDay(currentDate);
     }
     
     return dates;
@@ -216,54 +257,48 @@ const fetchDataForDate = async (date, kurs = 'Alle') => {
 
 /**
  * Scrapt die Vertretungsdaten von der neuen API
- * Sequenzieller Abruf (ein Tag nach dem anderen)
- * @returns {Promise<{dataToday: Array, dataTomorrow: Array}>}
+ * Sequenzieller Abruf für vergangene 3 Schultage, heute und nächste 4 Schultage
+ * @returns {Promise<Object>} Objekt mit Daten für alle Tage, keyed by date string
  */
 const scrapeData = async () => {
     console.log("Starte Datenabruf...");
     const currentDate = getCorrectDate();
-    
-    // Prüfe, ob das aktuelle Datum ein Wochenende ist
     const currentDateObj = new Date(currentDate);
+    
+    // Stelle sicher, dass wir mit einem Schultag starten
+    let baseDate = currentDateObj;
     if (isWeekend(currentDateObj)) {
-        console.log(`Aktuelles Datum ${currentDate} ist ein Wochenende, überspringe...`);
-        const nextSchoolDay = getNextSchoolDay(currentDateObj);
-        const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
-        console.log(`Springe zum nächsten Schultag: ${nextSchoolDayStr}`);
+        baseDate = getNextSchoolDay(currentDateObj);
+        console.log(`Aktuelles Datum ${currentDate} ist ein Wochenende, verwende ${baseDate.toISOString().split('T')[0]}`);
     }
     
-    // Berechne morgiges Datum
-    const tomorrowDate = new Date(currentDate);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    // Ermittle alle benötigten Daten: vergangene 3 + heute + nächste 4
+    const previousDates = getPreviousSchoolDays(baseDate, 3);
+    const nextDates = getNextSchoolDays(baseDate, 4);
+    const allDates = [...previousDates, baseDate.toISOString().split('T')[0], ...nextDates];
     
-    // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-    let tomorrowDateStr;
-    if (isWeekend(tomorrowDate)) {
-        const nextSchoolDay = getNextSchoolDay(tomorrowDate);
-        tomorrowDateStr = nextSchoolDay.toISOString().split('T')[0];
-        console.log(`Morgiges Datum wäre Wochenende, verwende nächsten Schultag: ${tomorrowDateStr}`);
-    } else {
-        tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
-    }
+    console.log(`Lade Daten für ${allDates.length} Tage: ${allDates.join(', ')}`);
 
-    const fetchWithFallback = async (label, date) => {
+    const fetchWithFallback = async (date) => {
         try {
             return await retry(() => fetchDataForDate(date, 'Alle'));
         } catch (error) {
-            console.error(`Fehler beim Abrufen der ${label} Daten (${date}):`, error.message);
+            console.error(`Fehler beim Abrufen der Daten für ${date}:`, error.message);
             return [];
         }
     };
     
     // Sequenzieller Abruf (ein Tag nach dem anderen)
-    console.log("Starte sequenziellen Datenabruf für heute und morgen...");
-    console.log(`Lade Daten für ${currentDate}...`);
-    const dataToday = await fetchWithFallback('heutigen', currentDate);
+    console.log("Starte sequenziellen Datenabruf...");
+    const allData = {};
     
-    console.log(`Lade Daten für ${tomorrowDateStr}...`);
-    const dataTomorrow = await fetchWithFallback('morgigen', tomorrowDateStr);
+    for (const dateStr of allDates) {
+        console.log(`Lade Daten für ${dateStr}...`);
+        const data = await fetchWithFallback(dateStr);
+        allData[dateStr] = data;
+    }
 
-    return { dataToday, dataTomorrow };
+    return allData;
 };
 
 /**
@@ -327,34 +362,41 @@ const extractTableData = (html) => {
 
 /**
  * Löscht alte temporäre Dateien im data-Verzeichnis
+ * Behält die vergangenen 3 Schultage, heute und die nächsten 4 Schultage
  */
 const cleanupOldTempFiles = () => {
     try {
-        // Aktuelle Datum und das morgige Datum (oder nächster Schultag) ermitteln
         const currentDateStr = getCorrectDate();
         const currentDate = new Date(currentDateStr);
-        const tomorrowDate = new Date(currentDate);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         
-        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-        const nextDate = isWeekend(tomorrowDate) 
-            ? getNextSchoolDay(tomorrowDate) 
-            : tomorrowDate;
-            
-        const nextDateStr = nextDate.toISOString().split('T')[0];
+        // Stelle sicher, dass wir mit einem Schultag starten
+        let baseDate = currentDate;
+        if (isWeekend(currentDate)) {
+            baseDate = getNextSchoolDay(currentDate);
+        }
+        
+        // Ermittle alle zu behaltenden Daten: vergangene 3 + heute + nächste 4
+        const previousDates = getPreviousSchoolDays(baseDate, 3);
+        const nextDates = getNextSchoolDays(baseDate, 4);
+        const baseDateStr = baseDate.toISOString().split('T')[0];
+        const datesToKeep = new Set([...previousDates, baseDateStr, ...nextDates]);
         
         // Alle Dateien im data-Verzeichnis durchsuchen
         const files = fs.readdirSync(dataDir);
         
-        // Temporäre Dateien filtern und löschen, außer die aktuellen und morgigen
+        // Temporäre Dateien filtern und löschen, außer die zu behaltenden
         files.forEach(file => {
-            if (file.startsWith('temp_') && 
-                file !== `temp_${currentDateStr}.json` && 
-                file !== `temp_${nextDateStr}.json`) {
-                
-                const filePath = path.join(dataDir, file);
-                fs.unlinkSync(filePath);
-                console.log(`Alte temporäre Datei gelöscht: ${file}`);
+            if (file.startsWith('temp_')) {
+                // Extrahiere Datum aus Dateinamen (temp_YYYY-MM-DD.json)
+                const dateMatch = file.match(/temp_(\d{4}-\d{2}-\d{2})\.json/);
+                if (dateMatch) {
+                    const fileDate = dateMatch[1];
+                    if (!datesToKeep.has(fileDate)) {
+                        const filePath = path.join(dataDir, file);
+                        fs.unlinkSync(filePath);
+                        console.log(`Alte temporäre Datei gelöscht: ${file}`);
+                    }
+                }
             }
         });
     } catch (error) {
@@ -364,53 +406,33 @@ const cleanupOldTempFiles = () => {
 
 /**
  * Speichert die temporären Vertretungsdaten
+ * Speichert Daten für vergangene 3 Schultage, heute und nächste 4 Schultage
  */
 const saveTemporaryData = async () => {
     try {
-        const { dataToday, dataTomorrow } = await scrapeData();
-        const currentDate = getCorrectDate();
-        const tomorrowDate = new Date(currentDate);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const allData = await scrapeData();
         
         // Lösche alte temporäre Dateien
         cleanupOldTempFiles();
         
-        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-        if (isWeekend(tomorrowDate)) {
-            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
-            const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
-            
-            // Speichere Daten mit Kurs-Liste
-            const saveData = (data, date) => {
-                fs.writeFileSync(
-                    path.join(dataDir, `temp_${date}.json`),
-                    JSON.stringify({
-                        data,
-                        courses: [...new Set(data.map(item => item.kurs))]
-                    })
-                );
-            };
-
-            saveData(dataToday, currentDate);
-            saveData(dataTomorrow, nextSchoolDayStr);
-            return;
-        }
-        
-        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
-
-        // Speichere Daten mit Kurs-Liste
+        // Speichere Daten mit Kurs-Liste für alle Tage
         const saveData = (data, date) => {
             fs.writeFileSync(
                 path.join(dataDir, `temp_${date}.json`),
                 JSON.stringify({
                     data,
-                    courses: [...new Set(data.map(item => item.kurs))]
+                    courses: [...new Set(data.map(item => item.kurs).filter(Boolean))]
                 })
             );
+            console.log(`Daten für ${date} gespeichert (${data.length} Einträge)`);
         };
 
-        saveData(dataToday, currentDate);
-        saveData(dataTomorrow, tomorrowDateStr);
+        // Speichere alle Daten
+        for (const [dateStr, data] of Object.entries(allData)) {
+            saveData(data, dateStr);
+        }
+        
+        console.log(`Insgesamt ${Object.keys(allData).length} Tage aktualisiert`);
     } catch (error) {
         console.error('Fehler beim Speichern der temporären Daten:', error);
     }
@@ -418,51 +440,31 @@ const saveTemporaryData = async () => {
 
 /**
  * Erstellt ein tägliches Backup der Vertretungsdaten
+ * Speichert Backups für alle aktualisierten Tage (vergangene 3 + heute + nächste 4)
  */
 const createDailyBackup = async () => {
     try {
         console.log("Creating daily backup...");
-        const { dataToday, dataTomorrow } = await scrapeData();
-        const currentDate = getCorrectDate();
-        const tomorrowDate = new Date(currentDate);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const allData = await scrapeData();
         
-        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-        if (isWeekend(tomorrowDate)) {
-            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
-            const nextSchoolDayStr = nextSchoolDay.toISOString().split('T')[0];
-            
-            // Backup Daten speichern
-            const createBackup = (data, date) => {
-                fs.writeFileSync(
-                    path.join(dataDir, `data_${date}.json`),
-                    JSON.stringify({
-                        data,
-                        courses: [...new Set(data.map(item => item.kurs))]
-                    })
-                );
-            };
-
-            createBackup(dataToday, currentDate);
-            createBackup(dataTomorrow, nextSchoolDayStr);
-            return;
-        }
-        
-        const tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
-
-        // Backup Daten speichern
+        // Backup Daten speichern für alle Tage
         const createBackup = (data, date) => {
             fs.writeFileSync(
                 path.join(dataDir, `data_${date}.json`),
                 JSON.stringify({
                     data,
-                    courses: [...new Set(data.map(item => item.kurs))]
+                    courses: [...new Set(data.map(item => item.kurs).filter(Boolean))]
                 })
             );
+            console.log(`Backup für ${date} erstellt (${data.length} Einträge)`);
         };
 
-        createBackup(dataToday, currentDate);
-        createBackup(dataTomorrow, tomorrowDateStr);
+        // Speichere Backups für alle Tage
+        for (const [dateStr, data] of Object.entries(allData)) {
+            createBackup(data, dateStr);
+        }
+        
+        console.log(`Insgesamt ${Object.keys(allData).length} Backups erstellt`);
     } catch (error) {
         console.error('Fehler beim Erstellen des Backups:', error);
     }
