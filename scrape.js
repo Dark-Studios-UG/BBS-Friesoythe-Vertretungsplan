@@ -55,6 +55,30 @@ const getNextSchoolDay = (date) => {
 };
 
 /**
+ * Ermittelt die nächsten N Schultage ab einem Startdatum
+ * @param {Date} startDate - Startdatum
+ * @param {number} count - Anzahl der Schultage
+ * @returns {Array<string>} Array von Datumsstrings im Format YYYY-MM-DD
+ */
+const getNextSchoolDays = (startDate, count = 4) => {
+    const dates = [];
+    let currentDate = new Date(startDate);
+    
+    // Stelle sicher, dass wir mit einem Schultag starten
+    if (isWeekend(currentDate)) {
+        currentDate = getNextSchoolDay(currentDate);
+    }
+    
+    while (dates.length < count) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        dates.push(dateStr);
+        currentDate = getNextSchoolDay(currentDate);
+    }
+    
+    return dates;
+};
+
+/**
  * Ermittelt das korrekte Datum basierend auf der Tageszeit
  * @returns {string} Datum im Format YYYY-MM-DD
  */
@@ -518,56 +542,55 @@ app.get('/api/morgen', async (req, res) => {
     }
 });
 
-// Endpunkt für beide Tage (Standard: heute und morgen)
+// Endpunkt für die nächsten 4 Schultage
 app.get('/api/both', async (req, res) => {
     try {
         const currentDate = getCorrectDate();
         const currentDateObj = new Date(currentDate);
         
         // Prüfe, ob das aktuelle Datum ein Wochenende ist
-        let todayDateStr = currentDate;
+        let startDate = currentDateObj;
         if (isWeekend(currentDateObj)) {
-            const nextSchoolDay = getNextSchoolDay(currentDateObj);
-            todayDateStr = nextSchoolDay.toISOString().split('T')[0];
-            console.log(`Aktuelles Datum ${currentDate} ist Wochenende, verwende ${todayDateStr}`);
+            startDate = getNextSchoolDay(currentDateObj);
+            console.log(`Aktuelles Datum ${currentDate} ist Wochenende, verwende ${startDate.toISOString().split('T')[0]}`);
         }
         
-        const tomorrowDate = new Date(todayDateStr);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        // Hole die nächsten 4 Schultage
+        const schoolDays = getNextSchoolDays(startDate, 4);
+        console.log(`Lade Daten für die nächsten 4 Schultage: ${schoolDays.join(', ')}`);
+
+        // Sequenzieller Abruf für alle 4 Tage
+        const allEntries = [];
+        const allCourses = new Set();
         
-        // Wenn der nächste Tag ein Wochenende ist, zum nächsten Schultag springen
-        let tomorrowDateStr;
-        if (isWeekend(tomorrowDate)) {
-            const nextSchoolDay = getNextSchoolDay(tomorrowDate);
-            tomorrowDateStr = nextSchoolDay.toISOString().split('T')[0];
-            console.log(`Morgiges Datum wäre Wochenende, verwende ${tomorrowDateStr}`);
-        } else {
-            tomorrowDateStr = tomorrowDate.toISOString().split('T')[0];
+        for (const dateStr of schoolDays) {
+            try {
+                const dayData = await getDataForDate(dateStr);
+                const entries = dayData.data.map(entry => ({
+                    ...entry,
+                    datum: dateStr
+                }));
+                allEntries.push(...entries);
+                
+                // Sammle alle Kurse
+                (dayData.courses || []).forEach(course => {
+                    if (course) allCourses.add(course);
+                });
+            } catch (error) {
+                console.error(`Fehler beim Abrufen der Daten für ${dateStr}:`, error);
+            }
         }
-
-        const todayData = await getDataForDate(todayDateStr);
-        const tomorrowData = await getDataForDate(tomorrowDateStr);
-
-        // Füge das Datum zu jedem Eintrag hinzu
-        const todayEntries = todayData.data.map(entry => ({
-            ...entry,
-            datum: todayDateStr
-        }));
-        const tomorrowEntries = tomorrowData.data.map(entry => ({
-            ...entry,
-            datum: tomorrowDateStr
-        }));
 
         // Kombiniere die Daten und Kurse
         const combinedData = {
-            data: [...todayEntries, ...tomorrowEntries].filter(item => item.kurs?.trim()),
-            courses: [...new Set([...todayData.courses || [], ...tomorrowData.courses || []].filter(Boolean))]
+            data: allEntries.filter(item => item.kurs?.trim()),
+            courses: Array.from(allCourses).sort()
         };
 
         res.json(combinedData);
     } catch (error) {
-        console.error('Fehler beim Abrufen beider Tage:', error);
-        res.status(500).send('Serverfehler beim Abrufen beider Tage');
+        console.error('Fehler beim Abrufen der nächsten 4 Schultage:', error);
+        res.status(500).send('Serverfehler beim Abrufen der nächsten 4 Schultage');
     }
 });
 
@@ -588,40 +611,52 @@ app.get('/api/date/:date', async (req, res) => {
     }
 });
 
-// Endpunkt für beide Tage mit spezifischen Daten
-app.get('/api/both/:date1/:date2', async (req, res) => {
+// Endpunkt für mehrere spezifische Daten (komma-separiert)
+app.get('/api/both/:dates', async (req, res) => {
     try {
-        const date1 = req.params.date1;
-        const date2 = req.params.date2;
+        const datesParam = req.params.dates;
+        const dates = datesParam.split(',');
         
         // Validiere Datumsformate
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date1) || !/^\d{4}-\d{2}-\d{2}$/.test(date2)) {
-            return res.status(400).json({ error: 'Ungültiges Datumsformat. Erwartet: YYYY-MM-DD' });
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        for (const date of dates) {
+            if (!dateRegex.test(date)) {
+                return res.status(400).json({ error: 'Ungültiges Datumsformat. Erwartet: YYYY-MM-DD,YYYY-MM-DD,...' });
+            }
         }
-        
-        const data1 = await getDataForDate(date1);
-        const data2 = await getDataForDate(date2);
 
-        // Füge das Datum zu jedem Eintrag hinzu
-        const entries1 = data1.data.map(entry => ({
-            ...entry,
-            datum: date1
-        }));
-        const entries2 = data2.data.map(entry => ({
-            ...entry,
-            datum: date2
-        }));
+        // Sequenzieller Abruf für alle Daten
+        const allEntries = [];
+        const allCourses = new Set();
+        
+        for (const dateStr of dates) {
+            try {
+                const dayData = await getDataForDate(dateStr);
+                const entries = dayData.data.map(entry => ({
+                    ...entry,
+                    datum: dateStr
+                }));
+                allEntries.push(...entries);
+                
+                // Sammle alle Kurse
+                (dayData.courses || []).forEach(course => {
+                    if (course) allCourses.add(course);
+                });
+            } catch (error) {
+                console.error(`Fehler beim Abrufen der Daten für ${dateStr}:`, error);
+            }
+        }
 
         // Kombiniere die Daten und Kurse
         const combinedData = {
-            data: [...entries1, ...entries2].filter(item => item.kurs?.trim()),
-            courses: [...new Set([...data1.courses || [], ...data2.courses || []].filter(Boolean))]
+            data: allEntries.filter(item => item.kurs?.trim()),
+            courses: Array.from(allCourses).sort()
         };
 
         res.json(combinedData);
     } catch (error) {
-        console.error('Fehler beim Abrufen beider Tage:', error);
-        res.status(500).send('Serverfehler beim Abrufen beider Tage');
+        console.error('Fehler beim Abrufen der Daten:', error);
+        res.status(500).send('Serverfehler beim Abrufen der Daten');
     }
 });
 

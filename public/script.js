@@ -109,12 +109,23 @@ class DateManager {
     }
 
     static getDefaultDates() {
-        // Gibt heute und morgen zurück (berücksichtigt 17 Uhr Regel)
+        // Gibt die nächsten 4 Schultage zurück (berücksichtigt 17 Uhr Regel)
         const today = this.getCurrentDate();
-        const tomorrow = this.getTomorrowDate();
+        const dates = [];
+        let currentDate = new Date(today);
+        
+        // Stelle sicher, dass wir mit einem Schultag starten
+        if (this.isWeekend(currentDate)) {
+            currentDate = this.getNextSchoolDay(currentDate);
+        }
+        
+        while (dates.length < 4) {
+            dates.push(this.dateToString(currentDate));
+            currentDate = this.getNextSchoolDay(currentDate);
+        }
+        
         return {
-            today: this.dateToString(today),
-            tomorrow: this.dateToString(tomorrow)
+            dates: dates
         };
     }
 }
@@ -144,9 +155,12 @@ class DataManager {
         }
     }
 
-    static async fetchDataForBothDates(date1, date2) {
+    static async fetchDataForMultipleDates(dates) {
         try {
-            const response = await fetch(`${API.BOTH}/${date1}/${date2}`);
+            // Wenn es die Standard-Daten sind (4 Schultage), verwende /api/both
+            // Sonst verwende /api/both/:dates mit komma-separierten Daten
+            const datesParam = dates.join(',');
+            const response = await fetch(`${API.BOTH}/${datesParam}`);
             if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
             
             const data = await response.json();
@@ -164,10 +178,11 @@ class DataManager {
         try {
             let result;
             if (mode === 'both') {
-                const { date1, date2 } = dateOrDates;
-                result = await this.fetchDataForBothDates(date1, date2);
+                // dateOrDates ist jetzt ein Array von Datumsstrings
+                const dates = Array.isArray(dateOrDates) ? dateOrDates : [dateOrDates];
+                result = await this.fetchDataForMultipleDates(dates);
                 this.currentMode = 'both';
-                this.currentDates = { date1, date2 };
+                this.currentDates = dates;
                 this.currentDate = null;
             } else {
                 result = await this.fetchDataForDate(dateOrDates);
@@ -220,10 +235,17 @@ class DataManager {
 class UIManager {
     static updateDateDisplay(mode, dateOrDates) {
         if (mode === 'both') {
-            const { date1, date2 } = dateOrDates;
-            const date1Obj = DateManager.stringToDate(date1);
-            const date2Obj = DateManager.stringToDate(date2);
-            DOM.date.textContent = `${DateManager.formatDate(date1Obj)} und ${DateManager.formatDate(date2Obj)}`;
+            // dateOrDates ist jetzt ein Array von Datumsstrings
+            const dates = Array.isArray(dateOrDates) ? dateOrDates : [dateOrDates];
+            const dateObjs = dates.map(d => DateManager.stringToDate(d));
+            const formattedDates = dateObjs.map(d => DateManager.formatDate(d));
+            
+            // Zeige die ersten 2 und letzten 2 Tage, oder alle wenn weniger als 4
+            if (dates.length <= 2) {
+                DOM.date.textContent = formattedDates.join(' und ');
+            } else {
+                DOM.date.textContent = `${formattedDates[0]}, ${formattedDates[1]}, ${formattedDates[2]} und ${formattedDates[3]}`;
+            }
         } else {
             const dateObj = DateManager.stringToDate(dateOrDates);
             DOM.date.textContent = DateManager.formatDate(dateObj);
@@ -475,17 +497,25 @@ class EventHandler {
     static async loadBothDays(initialCourse = null) {
         try {
             const defaultDates = DateManager.getDefaultDates();
-            const dates = { date1: defaultDates.today, date2: defaultDates.tomorrow };
+            const dates = defaultDates.dates; // Array von 4 Datumsstrings
             UIManager.updateDatePicker(null); // Reset auf heutiges Datum
             UIManager.setBothDaysButtonActive(true);
             UIManager.updateDateDisplay('both', dates);
 
-            // Fetch data
-            const data = await DataManager.fetchData('both', dates);
-            UIManager.updateCourseFilter(data.courses);
+            // Fetch data - verwende Standard-Endpunkt für 4 Schultage
+            const response = await fetch(API.BOTH);
+            if (!response.ok) throw new Error('Netzwerkantwort war nicht ok');
+            const data = await response.json();
+            
+            DataManager.allData = (data.data || []).filter(item => item.kurs?.trim());
+            DataManager.currentMode = 'both';
+            DataManager.currentDates = dates;
+            DataManager.currentDate = null;
+            
+            UIManager.updateCourseFilter(data.courses || []);
             
             // Set course selection
-            const courseToSelect = this.selectCourse(data.courses, initialCourse);
+            const courseToSelect = this.selectCourse(data.courses || [], initialCourse);
             DOM.courseFilter.value = courseToSelect;
             
             // Update storage - kein einzelnes Datum gespeichert
