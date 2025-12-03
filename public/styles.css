@@ -45,62 +45,268 @@ body {
 
 .container {
     max-width: 1200px;
-    margin: auto;
+    margin: 0 auto;
     background: var(--card-background);
-    padding: 12px;
-    border-radius: var(--border-radius);
-    box-shadow: none;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.04),
+        0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-/* Desktop: Größerer Padding */
+/* Desktop: Größerer Padding - Perfekte Symmetrie */
 @media screen and (min-width: 769px) {
     .container {
-        padding: 16px;
+        padding: 24px 32px;
+        border-radius: 16px;
     }
+}
+
+/* Page Header - Marketing-Perfekt */
+.page-header {
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.95) 0%, 
+        rgba(248, 249, 250, 0.98) 50%,
+        rgba(255, 255, 255, 0.95) 100%);
+    border-radius: 12px;
+    padding: 32px 20px;
+    margin-bottom: 32px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.02);
+    position: relative;
+    overflow: hidden;
+}
+
+.page-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(0, 0, 0, 0.06) 50%,
+        transparent 100%);
+}
+
+.header-content {
+    text-align: center;
+    max-width: 100%;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 h1 {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
     color: var(--primary-color);
-    font-size: 1.5rem;
-    margin-bottom: 12px;
-    font-weight: 600;
+    font-size: 1.625rem;
+    margin: 0 0 20px 0;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
 }
 
-h2 {
+.header-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    stroke: var(--primary-color);
+    opacity: 0.85;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.date-display {
     text-align: center;
     color: var(--primary-color);
-    font-size: 1.1rem;
-    margin-bottom: 12px;
+    font-size: 1rem;
     font-weight: 500;
+    opacity: 0.8;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 8px;
+    display: inline-block;
+    min-height: 44px;
+    line-height: 1.5;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
+    letter-spacing: 0.01em;
 }
 
-/* Desktop: Größere Überschriften */
+.date-display:hover {
+    opacity: 1;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+}
+
+/* Desktop: Größere Überschriften - Perfekte Symmetrie */
 @media screen and (min-width: 769px) {
-    h1 {
-        font-size: 1.8rem;
+    .page-header {
+        padding: 40px 32px;
+        margin-bottom: 40px;
+        border-radius: 16px;
     }
     
-    h2 {
-        font-size: 1.4rem;
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 24px;
+        gap: 16px;
+        letter-spacing: -0.025em;
+    }
+    
+    .header-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .date-display {
+        font-size: 1.125rem;
+        padding: 14px 24px;
+        min-height: 48px;
+        border-radius: 10px;
     }
 }
 
+/* Controls - Perfekte Symmetrie & Balance */
 .controls {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 24px;
+    margin-bottom: 24px;
     align-items: stretch;
+    max-width: 100%;
 }
 
-/* Desktop: Horizontales Layout */
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.control-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+    margin-bottom: 0;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    opacity: 0.75;
+    height: 24px;
+}
+
+.label-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: var(--primary-color);
+    opacity: 0.65;
+    stroke-width: 2.2;
+}
+
+/* Desktop: Horizontales Layout - Perfekte Balance - Gleiche Höhe */
 @media screen and (min-width: 769px) {
     .controls {
         flex-direction: row;
-        gap: 12px;
-        align-items: center;
+        gap: 32px;
+        align-items: flex-start;
         justify-content: center;
+        margin-bottom: 32px;
+    }
+    
+    .control-group {
+        flex: 1;
+        max-width: 420px;
+        min-width: 280px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Labels auf gleicher Höhe ausrichten */
+    .control-label {
+        font-size: 0.8125rem;
+        margin-bottom: 0;
+        letter-spacing: 0.05em;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        min-height: 28px;
+        max-height: 28px;
+    }
+    
+    /* Gleicher Abstand zwischen Label und Input für beide Gruppen */
+    .control-group {
+        gap: 8px;
+    }
+    
+    .label-icon {
+        width: 20px;
+        height: 20px;
+    }
+    
+    /* Input-Felder auf gleicher Höhe */
+    .date-controls {
+        display: flex;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .course-selection {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-height: 48px;
+    }
+    
+    /* Gleiche Höhe für alle Input-Elemente */
+    .date-picker-trigger,
+    .action-button,
+    .course-filter {
+        height: 48px !important;
+        min-height: 48px !important;
+        max-height: 48px !important;
+        box-sizing: border-box;
+        line-height: 1.5;
+    }
+    
+    /* Container auf gleicher Höhe */
+    .date-controls,
+    .course-selection {
+        align-items: stretch;
+    }
+    
+    .date-controls .custom-date-picker,
+    .course-selection {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Sicherstellen, dass alle Elemente in date-controls die gleiche Höhe haben */
+    .date-controls > * {
+        display: flex;
+        align-items: stretch;
+    }
+    
+    .date-controls .custom-date-picker {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .date-controls .date-picker-trigger {
+        flex: 1;
     }
 }
 
@@ -109,33 +315,110 @@ h2 {
     gap: var(--spacing);
 }
 
-.date-selection {
+.date-controls {
     display: flex;
+    gap: 10px;
+    align-items: stretch;
     flex-wrap: wrap;
-    gap: 8px;
+    width: 100%;
+    min-height: 48px;
+}
+
+.date-controls > * {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Perfekte Symmetrie für Date Controls */
+.date-controls .custom-date-picker {
+    flex: 1.5;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+.date-controls .action-button {
+    flex: 1;
+    min-width: 120px;
+}
+
+.action-button {
+    display: flex;
     align-items: center;
-    width: 100%;
-}
-
-.date-selection label {
-    font-weight: 600;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.9);
     color: var(--primary-color);
-    width: 100%;
-    text-align: center;
-    font-size: 0.9rem;
+    padding: 14px 18px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 48px;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.01em;
 }
 
-/* Desktop: Kompakteres Layout */
+.action-button:hover {
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+}
+
+.action-button:active {
+    transform: translateY(0);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.action-button.active {
+    background: var(--button-hover);
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.12),
+        0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.button-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    stroke-width: 2.2;
+}
+
+/* Desktop: Kompakteres Layout - Perfekte Symmetrie */
 @media screen and (min-width: 769px) {
-    .date-selection {
-        width: auto;
+    .date-controls {
         flex-wrap: nowrap;
+        gap: 12px;
     }
     
-    .date-selection label {
-        width: auto;
-        text-align: left;
-        font-size: 1rem;
+    .date-controls .custom-date-picker {
+        flex: 1.5;
+        min-width: 220px;
+    }
+    
+    .date-controls .action-button {
+        padding: 13px 22px;
+        min-height: auto;
+        flex: 1;
+        min-width: 140px;
+    }
+    
+    .date-picker-trigger {
+        min-width: 220px;
     }
 }
 
@@ -160,36 +443,64 @@ h2 {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: var(--button-background);
+    background: rgba(255, 255, 255, 0.9);
     color: var(--primary-color);
-    padding: 14px 18px;
-    border: none;
-    border-radius: var(--border-radius);
+    padding: 13px 18px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
     font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
+    height: 48px;
     min-height: 48px;
+    max-height: 48px;
     font-family: inherit;
     -webkit-tap-highlight-color: transparent;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    box-sizing: border-box;
 }
 
 /* Desktop: Feste Breite */
 @media screen and (min-width: 769px) {
     .date-picker-trigger {
         width: auto;
-        min-width: 180px;
-        padding: 12px 18px;
-        min-height: auto;
+        min-width: 200px;
+        padding: 13px 20px;
+        height: 48px;
+        min-height: 48px;
+        max-height: 48px;
     }
 }
 
 .date-picker-trigger:hover {
-    background: var(--button-hover);
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
 }
 
 .date-picker-trigger:active {
     transform: translateY(0);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.date-picker-trigger.active {
+    background: var(--button-hover);
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.12),
+        0 1px 2px rgba(0, 0, 0, 0.08);
+    font-weight: 600;
 }
 
 .date-picker-trigger .calendar-icon {
@@ -496,55 +807,79 @@ h2 {
         margin-bottom: 0;
     }
 
-    #bothDaysButton {
-        order: 0;
-        flex: 0;
-    }
 }
 
-button {
-    background: var(--button-background);
-    border: none;
-    color: black;
-    padding: 14px 20px;
-    text-align: center;
-    text-decoration: none;
+.action-button.active {
+    background: var(--button-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.course-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.course-filter {
+    width: 100%;
+    padding: 13px 18px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
     font-size: 1rem;
-    cursor: pointer;
-    border-radius: var(--border-radius);
-    transition: background-color 0.3s;
-    min-height: 48px;
+    font-weight: 500;
     font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%23333' d='M7 10L2 5h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+    background-size: 14px;
+    padding-right: 44px;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+    box-sizing: border-box;
 }
 
-#bothDaysButton {
-    order: 2;
-    flex: 1;
+.course-filter:hover {
+    border-color: rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.06),
+        inset 0 1px 1px rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+}
+
+.course-filter:focus {
+    outline: none;
+    border-color: rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 
+        0 0 0 3px rgba(0, 0, 0, 0.08),
+        0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.course-filter:active {
+    transform: translateY(0);
 }
 
 /* Desktop: Standard Button-Größen */
 @media screen and (min-width: 769px) {
-    button {
-        padding: 12px 24px;
-        min-width: 120px;
-        min-height: auto;
+    .course-filter {
+        padding: 13px 44px 13px 20px;
+        height: 48px;
+        min-height: 48px;
+        max-height: 48px;
     }
-    
-    #bothDaysButton {
-        order: 0;
-        flex: 0;
-    }
-}
-
-button:hover {
-    background: var(--button-hover);
-}
-
-button.active {
-    background-color: var(--button-hover);
-    font-weight: bold;
 }
 
 select {

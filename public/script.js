@@ -478,6 +478,10 @@ class UIManager {
         DOM.bothDaysButton.classList.toggle('active', active);
     }
 
+    static setDatePickerActive(active) {
+        DOM.datePickerTrigger.classList.toggle('active', active);
+    }
+
     static updateCourseFilter(courses) {
         DOM.courseFilter.innerHTML = '<option value="all">Wähle einen Kurs</option>';
         courses.sort().forEach(course => {
@@ -675,6 +679,7 @@ class EventHandler {
         try {
             UIManager.updateDatePicker(date);
             UIManager.setBothDaysButtonActive(false);
+            UIManager.setDatePickerActive(true);
             UIManager.updateDateDisplay('single', date);
 
             // Fetch data
@@ -707,6 +712,7 @@ class EventHandler {
             const dates = defaultDates.dates; // Array von 4 Datumsstrings
             UIManager.updateDatePicker(null); // Reset auf heutiges Datum
             UIManager.setBothDaysButtonActive(true);
+            UIManager.setDatePickerActive(false);
             UIManager.updateDateDisplay('both', dates);
 
             // Fetch data - verwende Standard-Endpunkt für 4 Schultage

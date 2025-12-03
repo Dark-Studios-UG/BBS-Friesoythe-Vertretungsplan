@@ -11,50 +11,92 @@
 </head>
 <body>
     <div class="container">
-        <h1>BBS Friesoythe Vertretungsplan</h1>
-        <h2 id="date"></h2>
-        <div class="controls">
-            <div class="date-selection">
-                <label>Datum:</label>
-                <div class="custom-date-picker">
-                    <button type="button" class="date-picker-trigger" id="datePickerTrigger">
-                        <span id="selectedDateText">Datum wählen</span>
-                        <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                    </button>
-                    <div class="date-picker-dropdown" id="datePickerDropdown">
-                        <div class="date-picker-header">
-                            <button type="button" class="nav-btn" id="prevMonth">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                            </button>
-                            <span class="current-month" id="currentMonth"></span>
-                            <button type="button" class="nav-btn" id="nextMonth">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="date-picker-weekdays">
-                            <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span class="weekend">Sa</span><span class="weekend">So</span>
-                        </div>
-                        <div class="date-picker-days" id="datePickerDays"></div>
-                        <div class="date-picker-footer">
-                            <button type="button" class="today-btn" id="todayBtn">Heute</button>
-                        </div>
-                    </div>
-                    <input type="hidden" id="datePicker">
-                </div>
-                <button id="bothDaysButton">4 Tage</button>
+        <header class="page-header">
+            <div class="header-content">
+                <h1>
+                    <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        <line x1="8" y1="7" x2="18" y2="7"></line>
+                        <line x1="8" y1="11" x2="18" y2="11"></line>
+                        <line x1="8" y1="15" x2="13" y2="15"></line>
+                    </svg>
+                    <span>BBS Friesoythe Vertretungsplan</span>
+                </h1>
+                <div class="date-display" id="date"></div>
             </div>
-            <select id="courseFilter">
-                <option value="all">Wähle einen Kurs</option>
-            </select>
+        </header>
+        <div class="controls">
+            <div class="control-group date-selection">
+                <label class="control-label">
+                    <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>Datum</span>
+                </label>
+                <div class="date-controls">
+                    <div class="custom-date-picker">
+                        <button type="button" class="date-picker-trigger" id="datePickerTrigger">
+                            <span id="selectedDateText">Datum wählen</span>
+                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                            </svg>
+                        </button>
+                        <div class="date-picker-dropdown" id="datePickerDropdown">
+                            <div class="date-picker-header">
+                                <button type="button" class="nav-btn" id="prevMonth">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                                <span class="current-month" id="currentMonth"></span>
+                                <button type="button" class="nav-btn" id="nextMonth">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="date-picker-weekdays">
+                                <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span class="weekend">Sa</span><span class="weekend">So</span>
+                            </div>
+                            <div class="date-picker-days" id="datePickerDays"></div>
+                            <div class="date-picker-footer">
+                                <button type="button" class="today-btn" id="todayBtn">Heute</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="datePicker">
+                    </div>
+                    <button id="bothDaysButton" class="action-button" title="4 Schultage anzeigen">
+                        <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                        </svg>
+                        <span>4 Tage</span>
+                    </button>
+                </div>
+            </div>
+            <div class="control-group course-selection">
+                <label class="control-label" for="courseFilter">
+                    <svg class="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span>Kurs</span>
+                </label>
+                <select id="courseFilter" class="course-filter">
+                    <option value="all">Alle Kurse</option>
+                </select>
+            </div>
         </div>
         <div class="table-container">
             <table>
