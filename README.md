@@ -2,7 +2,7 @@
 
 Ein moderner und benutzerfreundlicher Vertretungsplan für die BBS Friesoythe. Die Anwendung zeigt Vertretungen für heute und morgen an und ermöglicht das Filtern nach Kursen.
 
-🌐 **Website:** [bbsvertretung.darkstudios.de](https://bbsvertretung.darkstudios.de)
+🌐 **Website:** [bbs.deeken.digital](https://bbs.deeken.digital)
 
 ## Features
 
