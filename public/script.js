@@ -643,6 +643,34 @@ class EventHandler {
         DOM.datePicker.addEventListener('change', () => this.handleDatePickerChange());
         DOM.bothDaysButton.addEventListener('click', () => this.handleBothDaysClick());
         DOM.courseFilter.addEventListener('change', () => this.handleCourseChange());
+        
+        // Pfeil-Rotation für Kurs-Picker
+        let isOpen = false;
+        
+        DOM.courseFilter.addEventListener('mousedown', () => {
+            if (!isOpen) {
+                isOpen = true;
+                DOM.courseFilter.classList.add('open');
+            }
+        });
+        
+        DOM.courseFilter.addEventListener('focus', () => {
+            isOpen = true;
+            DOM.courseFilter.classList.add('open');
+        });
+        
+        DOM.courseFilter.addEventListener('blur', () => {
+            isOpen = false;
+            DOM.courseFilter.classList.remove('open');
+        });
+        
+        DOM.courseFilter.addEventListener('change', () => {
+            // Klasse entfernen nach Auswahl
+            setTimeout(() => {
+                isOpen = false;
+                DOM.courseFilter.classList.remove('open');
+            }, 150);
+        });
 
         // Listen for hash changes
         window.addEventListener('hashchange', (e) => {

@@ -19,6 +19,25 @@ const API_HEADERS = {
     Accept: '*/*'
 };
 
+// Rate-Limiting: 3 Sekunden zwischen erfolgreichen API-Anfragen
+const API_REQUEST_DELAY = 3000; // 3 Sekunden in Millisekunden
+let lastSuccessfulRequestTime = 0;
+
+/**
+ * Wartet, bis 3 Sekunden seit dem letzten erfolgreichen Request vergangen sind
+ * @returns {Promise<void>}
+ */
+const waitForRateLimit = async () => {
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastSuccessfulRequestTime;
+    
+    if (timeSinceLastRequest < API_REQUEST_DELAY) {
+        const waitTime = API_REQUEST_DELAY - timeSinceLastRequest;
+        console.log(`Warte ${waitTime}ms vor nächstem Request (Rate-Limit: 3s)...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+};
+
 // Express App Setup
 const app = express();
 app.use(cors());
@@ -213,6 +232,9 @@ const buildFormBody = (date, kurs) => {
  * @returns {Promise<Array>} Array von Vertretungseinträgen
  */
 const fetchDataForDate = async (date, kurs = 'Alle') => {
+    // Warte 3 Sekunden seit dem letzten erfolgreichen Request
+    await waitForRateLimit();
+    
     try {
         console.log(`Hole Daten für ${date}, Kurs: ${kurs}`);
         
@@ -237,6 +259,10 @@ const fetchDataForDate = async (date, kurs = 'Alle') => {
         
         const data = extractTableData(response.data);
         console.log(`Gefunden: ${data.length} Einträge für ${date}`);
+        
+        // Aktualisiere Zeitpunkt des letzten erfolgreichen Requests
+        lastSuccessfulRequestTime = Date.now();
+        
         return data;
     } catch (error) {
         // Detaillierte Fehlerbehandlung
