@@ -199,48 +199,111 @@ const scrapeData = async () => {
  */
 const extractTableData = async (page) => {
     try {
-        const waitResultHandle = await page.waitForFunction(() => {
-            const rows = document.querySelectorAll('table tbody tr');
-            if (rows.length > 0) {
-                return { hasRows: true, reason: 'rows-detected' };
-            }
+        // Warte zunächst darauf, dass die Seite vollständig geladen ist
+        await page.waitForSelector('body', { timeout: 10000 }).catch(() => {
+            console.log("Body selector not found, proceeding anyway...");
+        });
 
-            const emptySelectors = [
-                '.monitor-no-data',
-                '.monitorMessage',
-                '.untis-message',
-                '.alert-warning',
-                '.alert-info'
-            ];
-            const emptyElementFound = emptySelectors.some(selector => document.querySelector(selector));
+        // Prüfe den Seiteninhalt mit einem kürzeren Timeout
+        let waitResult = null;
+        try {
+            const waitResultHandle = await page.waitForFunction(() => {
+                const rows = document.querySelectorAll('table tbody tr');
+                if (rows.length > 0) {
+                    return { hasRows: true, reason: 'rows-detected' };
+                }
 
-            const pageText = document.body?.innerText?.toLowerCase() || '';
-            const emptyTextSnippets = [
-                'keine daten',
-                'kein vertretungsplan',
-                'keine vertretungen',
-                'no data',
-                'no entries',
-                'noch keine informationen'
-            ];
-            const emptyTextFound = emptyTextSnippets.some(snippet => pageText.includes(snippet));
+                const emptySelectors = [
+                    '.monitor-no-data',
+                    '.monitorMessage',
+                    '.untis-message',
+                    '.alert-warning',
+                    '.alert-info',
+                    '[class*="no-data"]',
+                    '[class*="empty"]'
+                ];
+                const emptyElementFound = emptySelectors.some(selector => {
+                    try {
+                        return document.querySelector(selector) !== null;
+                    } catch {
+                        return false;
+                    }
+                });
 
-            if (emptyElementFound || emptyTextFound) {
-                return { hasRows: false, reason: 'empty-indicator' };
-            }
+                const pageText = document.body?.innerText?.toLowerCase() || '';
+                const emptyTextSnippets = [
+                    'keine daten',
+                    'kein vertretungsplan',
+                    'keine vertretungen',
+                    'no data',
+                    'no entries',
+                    'noch keine informationen',
+                    'keine einträge',
+                    'vertretungsplan',
+                    'keine informationen'
+                ];
+                const emptyTextFound = emptyTextSnippets.some(snippet => pageText.includes(snippet));
 
-            return false;
-        }, { timeout: 60000 });
+                // Prüfe auch, ob eine Tabelle existiert, aber leer ist
+                const tableExists = document.querySelector('table') !== null;
+                if (tableExists && rows.length === 0) {
+                    return { hasRows: false, reason: 'empty-table' };
+                }
 
-        const waitResult = await waitResultHandle.jsonValue();
-        await waitResultHandle.dispose();
+                if (emptyElementFound || emptyTextFound) {
+                    return { hasRows: false, reason: 'empty-indicator' };
+                }
+
+                return false;
+            }, { timeout: 20000 }); // Reduzierter Timeout auf 20 Sekunden
+
+            waitResult = await waitResultHandle.jsonValue();
+            await waitResultHandle.dispose();
+        } catch (timeoutError) {
+            // Wenn Timeout auftritt, prüfe den aktuellen Zustand der Seite
+            console.log("Timeout beim Warten auf Seiteninhalt, prüfe aktuellen Zustand...");
+            waitResult = await page.evaluate(() => {
+                const rows = document.querySelectorAll('table tbody tr');
+                if (rows.length > 0) {
+                    return { hasRows: true, reason: 'rows-detected-after-timeout' };
+                }
+
+                const emptySelectors = [
+                    '.monitor-no-data',
+                    '.monitorMessage',
+                    '.untis-message',
+                    '.alert-warning',
+                    '.alert-info'
+                ];
+                const emptyElementFound = emptySelectors.some(selector => document.querySelector(selector));
+
+                const pageText = document.body?.innerText?.toLowerCase() || '';
+                const emptyTextSnippets = [
+                    'keine daten',
+                    'kein vertretungsplan',
+                    'keine vertretungen',
+                    'no data',
+                    'no entries'
+                ];
+                const emptyTextFound = emptyTextSnippets.some(snippet => pageText.includes(snippet));
+
+                // Wenn eine Tabelle existiert, aber leer ist, ist das auch ein gültiger Zustand
+                const tableExists = document.querySelector('table') !== null;
+                if (tableExists) {
+                    return { hasRows: false, reason: 'empty-table-after-timeout' };
+                }
+
+                return { hasRows: false, reason: 'timeout-fallback' };
+            });
+        }
 
         if (!waitResult?.hasRows) {
-            console.log("No substitution rows rendered on page, returning empty dataset.");
+            console.log(`No substitution rows rendered on page (reason: ${waitResult?.reason || 'unknown'}), returning empty dataset.`);
             return [];
         }
         
-        return page.evaluate(() => {
+        // Extrahiere die Tabellendaten
+        const data = await page.evaluate(() => {
             const rows = Array.from(document.querySelectorAll('table tbody tr'));
             if (!rows.length) {
                 console.log("No rows found in table");
@@ -264,8 +327,11 @@ const extractTableData = async (page) => {
                 };
             }).filter(Boolean); // Remove any null entries
         });
+
+        return data;
     } catch (error) {
         console.error("Error extracting table data:", error);
+        // Bei jedem Fehler eine leere Liste zurückgeben statt zu crashen
         return [];
     }
 };
