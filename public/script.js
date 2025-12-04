@@ -277,7 +277,7 @@ class StorageManager {
         if (hash.view) {
             return hash.view;
         }
-        return localStorage.getItem(STORAGE_KEYS.SELECTED_VIEW) || 'today';
+        return localStorage.getItem(STORAGE_KEYS.SELECTED_VIEW) || 'both';
     }
 
     static parseUrlHash() {
@@ -313,7 +313,7 @@ class StorageManager {
             if (course && course !== 'all') {
                 hash = encodeURIComponent(course);
             }
-            if (view && view !== 'today') {
+            if (view && view !== 'both') {
                 hash = hash ? `${hash};view=${view}` : `view=${view}`;
             }
 
@@ -359,7 +359,7 @@ class EventHandler {
 
         // Initial load - process hash directly
         const hashData = StorageManager.parseUrlHash();
-        const initialView = hashData.view || 'today';
+        const initialView = hashData.view || 'both';
 
         // Load data for the selected view
         await this.handleDataLoad(initialView, hashData.course);
@@ -488,7 +488,7 @@ class EventHandler {
             this.isHandlingHashChange = true;
             
             const hashData = StorageManager.parseUrlHash();
-            const view = hashData.view || 'today';
+            const view = hashData.view || 'both';
             
             // Direct handling of hash data for better reliability
             this.handleDataLoad(view, hashData.course);

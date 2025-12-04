@@ -1,6 +1,8 @@
 # TASKS
 
 ## Aktive & Abgeschlossene Aufgaben
+- [x] 2025-01-27 – Standardansicht auf "Beide" gesetzt
+  - Beschreibung: Standardansicht in `public/script.js` von "Heute" auf "Beide" geändert. URL-Hash-Logik entsprechend angepasst.
 - [x] 2025-01-27 – Aktualisierung der WebUntis-URLs
   - Beschreibung: URLs in `scrape.js` von `kephiso.webuntis.com` auf `bbs-friesoythe.webuntis.com` aktualisiert.
 - [x] 2025-12-04 – Stabilisierung der Tabellenextraktion in `extractTableData`
