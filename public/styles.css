@@ -139,6 +139,7 @@ th, td {
     text-overflow: ellipsis;
     white-space: nowrap;
     background: transparent;
+    transition: background-color 0.15s ease;
 }
 
 th {
@@ -176,10 +177,7 @@ th:nth-child(5), td:nth-child(5) { width: 15%; } /* Lehrer */
 th:nth-child(6), td:nth-child(6) { width: 15%; } /* Typ */
 th:nth-child(7), td:nth-child(7) { width: 20%; } /* Notizen */
 
-/* Datumsspalte */
-.date-column {
-    transition: all 0.3s ease;
-}
+/* Datumsspalte - keine spezielle Transition, wird von td übernommen */
 
 /* Wenn die Datumsspalte ausgeblendet ist, passe die anderen Spaltenbreiten an */
 .date-column[style*="display: none"] ~ td:nth-child(1) { width: 15%; }
