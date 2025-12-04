@@ -11,8 +11,8 @@ const UPDATE_INTERVAL = 600000; // 10 Minuten in Millisekunden
 const SWITCH_HOUR = 17; // Ab dieser Uhrzeit wird auf den nächsten Tag umgeschaltet
 
 const URLS = {
-    TODAY: 'https://kephiso.webuntis.com/WebUntis/monitor?school=BBS%20Friesoythe&monitorType=subst&format=Vertretung%20heute',
-    TOMORROW: 'https://kephiso.webuntis.com/WebUntis/monitor?school=BBS%20Friesoythe&monitorType=subst&format=Vertretung%20morgen'
+    TODAY: 'https://bbs-friesoythe.webuntis.com/WebUntis/monitor?school=bbs-friesoythe&monitorType=subst&format=Vertretung%20heute',
+    TOMORROW: 'https://bbs-friesoythe.webuntis.com/WebUntis/monitor?school=bbs-friesoythe&monitorType=subst&format=Vertretung%20morgen'
 };
 
 // Express App Setup
