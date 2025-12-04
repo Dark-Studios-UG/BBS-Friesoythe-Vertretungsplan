@@ -199,8 +199,46 @@ const scrapeData = async () => {
  */
 const extractTableData = async (page) => {
     try {
-        // Wait for the table to be present
-        await page.waitForSelector('table tbody tr', { timeout: 30000 });
+        const waitResultHandle = await page.waitForFunction(() => {
+            const rows = document.querySelectorAll('table tbody tr');
+            if (rows.length > 0) {
+                return { hasRows: true, reason: 'rows-detected' };
+            }
+
+            const emptySelectors = [
+                '.monitor-no-data',
+                '.monitorMessage',
+                '.untis-message',
+                '.alert-warning',
+                '.alert-info'
+            ];
+            const emptyElementFound = emptySelectors.some(selector => document.querySelector(selector));
+
+            const pageText = document.body?.innerText?.toLowerCase() || '';
+            const emptyTextSnippets = [
+                'keine daten',
+                'kein vertretungsplan',
+                'keine vertretungen',
+                'no data',
+                'no entries',
+                'noch keine informationen'
+            ];
+            const emptyTextFound = emptyTextSnippets.some(snippet => pageText.includes(snippet));
+
+            if (emptyElementFound || emptyTextFound) {
+                return { hasRows: false, reason: 'empty-indicator' };
+            }
+
+            return false;
+        }, { timeout: 60000 });
+
+        const waitResult = await waitResultHandle.jsonValue();
+        await waitResultHandle.dispose();
+
+        if (!waitResult?.hasRows) {
+            console.log("No substitution rows rendered on page, returning empty dataset.");
+            return [];
+        }
         
         return page.evaluate(() => {
             const rows = Array.from(document.querySelectorAll('table tbody tr'));
