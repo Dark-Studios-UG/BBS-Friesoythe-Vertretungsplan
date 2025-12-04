@@ -9,7 +9,7 @@ const { URLSearchParams } = require('url');
 // Konstanten
 const PORT = process.env.PORT || 3000;
 const BACKUP_HOUR = 3; // Uhrzeit für tägliches Backup
-const UPDATE_INTERVAL = 600000; // 10 Minuten in Millisekunden
+const UPDATE_INTERVAL = 1800000; // 10 Minuten in Millisekunden
 const SWITCH_HOUR = 17; // Ab dieser Uhrzeit wird auf den nächsten Tag umgeschaltet
 
 const API_URL = 'https://vertretung.bababue.com/query';
