@@ -1,6 +1,8 @@
 # TASKS
 
 ## Aktive & Abgeschlossene Aufgaben
+- [x] 2025-01-27 – Footer mobilfreundlicher gestaltet
+  - Beschreibung: Footer-Links in `public/styles.css` für mobile Geräte optimiert: 2-Spalten-Grid-Layout, größere Touch-Targets (min. 44px), verbesserte Abstände und aktive Zustände.
 - [x] 2025-01-27 – Standardansicht auf "Beide" gesetzt
   - Beschreibung: Standardansicht in `public/script.js` von "Heute" auf "Beide" geändert. URL-Hash-Logik entsprechend angepasst.
 - [x] 2025-01-27 – Aktualisierung der WebUntis-URLs

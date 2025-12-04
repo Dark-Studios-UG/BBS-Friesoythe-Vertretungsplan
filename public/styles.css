@@ -307,6 +307,7 @@ tr:hover td {
     display: flex;
     justify-content: center;
     gap: 24px;
+    flex-wrap: wrap;
 }
 
 .footer-links a {
@@ -315,9 +316,45 @@ tr:hover td {
     font-size: 0.9rem;
     opacity: 0.8;
     transition: opacity 0.3s;
+    padding: 4px 8px;
+    display: inline-block;
 }
 
 .footer-links a:hover {
     opacity: 1;
     text-decoration: underline;
+}
+
+/* Mobile Footer Optimierungen */
+@media screen and (max-width: 768px) {
+    .footer {
+        margin-top: 16px;
+        padding-top: 12px;
+    }
+
+    .footer-links {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px 16px;
+        justify-items: center;
+        text-align: center;
+    }
+
+    .footer-links a {
+        font-size: 0.85rem;
+        padding: 10px 12px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 200px;
+        border-radius: 4px;
+        transition: background-color 0.2s, opacity 0.3s;
+    }
+
+    .footer-links a:active {
+        background-color: var(--button-hover);
+        opacity: 1;
+    }
 }
